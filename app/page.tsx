@@ -57,6 +57,22 @@ export default function Home() {
   );
   const [sortOrder, setSortOrder] = useState<string[] | null>(null);
 
+  const getSortIndicator = (key: SortKey) =>
+    sortState.key !== key
+      ? "↕"
+      : sortState.direction === "asc"
+        ? "▲"
+        : "▼";
+
+  const updateSort = (key: SortKey) => {
+    setSortState(function applySort(prev) {
+      const direction =
+        prev.key === key && prev.direction === "asc" ? "desc" : "asc";
+      setSortOrder(computeSortOrder(rows, totals, key, direction));
+      return { key, direction };
+    });
+  };
+
   const totals = useMemo(() => computeTotals(rows), [rows]);
 
   const sortedRows = useMemo(() => {
@@ -159,11 +175,11 @@ export default function Home() {
     event.target.value = "";
   };
 
-  useEffect(() => {
+  useEffect(function normalizeInitialRows() {
     setRows((prev) => normalizeRows(prev));
   }, []);
 
-  useEffect(() => {
+  useEffect(function applyInitialSortFromUrl() {
     if (!sortOrder && initialSort) {
       setSortOrder(
         computeSortOrder(rows, totals, initialSort.key, initialSort.direction),
@@ -171,11 +187,11 @@ export default function Home() {
     }
   }, [initialSort, sortOrder, rows, totals]);
 
-  useEffect(() => {
+  useEffect(function syncSortOrderWithRows() {
     if (!sortOrder) {
       return;
     }
-    setSortOrder((prev) => {
+    setSortOrder(function syncOrder(prev) {
       if (!prev) {
         return prev;
       }
@@ -190,7 +206,7 @@ export default function Home() {
     });
   }, [rows, sortOrder]);
 
-  useEffect(() => {
+  useEffect(function syncUrlState() {
     const encodedRows = serializeRows(rows, totals.cashTarget);
     const sortValue = sortOrder
       ? `${sortState.key}:${sortState.direction}`
@@ -286,102 +302,42 @@ export default function Home() {
             <div className="hidden items-center gap-4 border-b border-[#f2e8dd] pb-3 text-xs font-semibold uppercase tracking-[0.3em] text-[#8c7b6c] sm:grid sm:grid-cols-5">
               <button
                 type="button"
-                onClick={() =>
-                  setSortState((prev) => {
-                    const direction =
-                      prev.key === "ticker" && prev.direction === "asc"
-                        ? "desc"
-                        : "asc";
-                    setSortOrder(
-                      computeSortOrder(rows, totals, "ticker", direction),
-                    );
-                    return { key: "ticker", direction };
-                  })
-                }
+                onClick={() => updateSort("ticker")}
                 className="flex items-center gap-2"
               >
                 Ticker
                 <span className="text-[10px]">
-                  {sortState.key === "ticker"
-                    ? sortState.direction === "asc"
-                      ? "▲"
-                      : "▼"
-                    : "↕"}
+                  {getSortIndicator("ticker")}
                 </span>
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setSortState((prev) => {
-                    const direction =
-                      prev.key === "current" && prev.direction === "asc"
-                        ? "desc"
-                        : "asc";
-                    setSortOrder(
-                      computeSortOrder(rows, totals, "current", direction),
-                    );
-                    return { key: "current", direction };
-                  })
-                }
+                onClick={() => updateSort("current")}
                 className="flex items-center gap-2"
               >
                 Current
                 <span className="text-[10px]">
-                  {sortState.key === "current"
-                    ? sortState.direction === "asc"
-                      ? "▲"
-                      : "▼"
-                    : "↕"}
+                  {getSortIndicator("current")}
                 </span>
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setSortState((prev) => {
-                    const direction =
-                      prev.key === "target" && prev.direction === "asc"
-                        ? "desc"
-                        : "asc";
-                    setSortOrder(
-                      computeSortOrder(rows, totals, "target", direction),
-                    );
-                    return { key: "target", direction };
-                  })
-                }
+                onClick={() => updateSort("target")}
                 className="flex items-center gap-2"
               >
                 Target
                 <span className="text-[10px]">
-                  {sortState.key === "target"
-                    ? sortState.direction === "asc"
-                      ? "▲"
-                      : "▼"
-                    : "↕"}
+                  {getSortIndicator("target")}
                 </span>
               </button>
               <button
                 type="button"
-                onClick={() =>
-                  setSortState((prev) => {
-                    const direction =
-                      prev.key === "amount" && prev.direction === "asc"
-                        ? "desc"
-                        : "asc";
-                    setSortOrder(
-                      computeSortOrder(rows, totals, "amount", direction),
-                    );
-                    return { key: "amount", direction };
-                  })
-                }
+                onClick={() => updateSort("amount")}
                 className="flex items-center gap-2"
               >
                 Trade
                 <span className="text-[10px]">
-                  {sortState.key === "amount"
-                    ? sortState.direction === "asc"
-                      ? "▲"
-                      : "▼"
-                    : "↕"}
+                  {getSortIndicator("amount")}
                 </span>
               </button>
               <span className="text-right">Action</span>
