@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useEffect, useRef } from "react";
+import { Suspense, useMemo, useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   arraysEqual,
@@ -41,7 +41,7 @@ const parseSortState = (value: string | null): SortState | null => {
 };
 
 
-export default function Home() {
+function HomeContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -242,19 +242,18 @@ export default function Home() {
       <main className="relative mx-auto flex w-full max-w-6xl flex-col gap-10 px-6 py-16 sm:px-10 lg:px-12">
         <header className="flex flex-col gap-6">
           <div className="flex flex-wrap items-center gap-3 text-sm uppercase tracking-[0.3em] text-[#7b6a5b]">
-            Portfolio Toolkit
-            <span className="h-[1px] w-10 bg-[#7b6a5b]/60" />
-            Frontend Only
+            Zero-Cash Portfolio Rebalancer
           </div>
           <div className="flex flex-col gap-3">
             <h1 className="text-4xl font-semibold tracking-tight text-[#161515] sm:text-5xl">
-              Rebalance with clarity, not spreadsheets.
+              Rebalance your portfolio.
             </h1>
             <p className="max-w-2xl text-base text-[#4a4037] sm:text-lg">
-              Enter tickers, current dollar amounts, and target allocation
-              percentages. The calculator updates instantly with how much to
-              sell or buy per holding to reach the target split. Everything
-              runs locally in your browser—no data is sent to a server.
+              Enter tickers, amounts, and target allocation percentages. The
+              calculator updates instantly with how much to sell or buy per
+              holding to reach the target allocation. It can also read a .csv of your Positions downloaded from Fidelity
+              instead (this tool is not affiliated with Fidelity in any way). Everything runs locally
+              in your browser - data never leaves your machine.
             </p>
           </div>
         </header>
@@ -266,7 +265,7 @@ export default function Home() {
                 Allocation Inputs
               </h2>
               <p className="text-sm text-[#5b5148]">
-                Add as many rows as needed. Press Tab to add more entries.
+                Add a row for each ticker. Press "Add Row" (or Tab) to add more entries or the Trash icon to delete them.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-3">
@@ -282,7 +281,7 @@ export default function Home() {
                 onClick={() => fileInputRef.current?.click()}
                 className="inline-flex items-center gap-2 rounded-full bg-[#1b1a17] px-5 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(30,27,23,0.2)] transition hover:-translate-y-0.5 hover:bg-[#2d2a25]"
               >
-                Process Fidelity CSV
+                Process CSV
               </button>
               <button
                 type="button"
@@ -436,7 +435,7 @@ export default function Home() {
                             handleTabAddRow(event, isLastRow)
                           }
                           onBlur={applySortOrderOnBlur}
-                          placeholder="25"
+                          placeholder="0"
                           className="h-12 w-full appearance-none rounded-xl border border-[#e6d7c7] bg-[#fefbf7] px-3 pr-8 text-sm font-medium text-[#1d1b18] outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60"
                         />
                       </div>
@@ -564,5 +563,13 @@ export default function Home() {
         </section>
       </main>
     </div>
+  );
+}
+
+export default function Home() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-[#5b5148]">Loading…</div>}>
+      <HomeContent />
+    </Suspense>
   );
 }

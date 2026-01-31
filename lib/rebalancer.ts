@@ -112,6 +112,7 @@ export const parseRows = (value: string | null) => {
 
 export const normalizeRows = (rows: Row[] | null): Row[] => {
   if (!rows || rows.length === 0) {
+    // Unreachable in normal usage because the UI always maintains a CASH row.
     return [{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }];
   }
 
@@ -174,8 +175,10 @@ export const computeSortOrder = (
       case "amount":
         result = getAmountValue(a) - getAmountValue(b);
         break;
-      default:
-        result = 0;
+      default: {
+        key satisfies never;
+        throw new Error('Unreachable');
+      }
     }
 
     return direction === "asc" ? result : -result;
@@ -296,10 +299,6 @@ export const parseFidelityCsv = (text: string) => {
     }
 
     const ticker = symbol.trim().toUpperCase();
-    if (!ticker) {
-      continue;
-    }
-
     const nextValue = (positionMap.get(ticker) ?? 0) + current;
     positionMap.set(ticker, nextValue);
   }
