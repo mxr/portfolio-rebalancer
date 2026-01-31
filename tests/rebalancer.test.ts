@@ -8,6 +8,9 @@ import {
   DEFAULT_ROWS,
   formatPercent,
   formatCurrency,
+  isCsvFile,
+  isCsvRowCountOk,
+  isCsvSizeOk,
   makeRowId,
   normalizeRows,
   parseFidelityCsv,
@@ -149,6 +152,21 @@ describe("rebalancer helpers", () => {
 
   it("formats currency in USD", () => {
     expect(formatCurrency(12.5)).toContain("$");
+  });
+
+  it("validates CSV file metadata", () => {
+    expect(isCsvFile("positions.csv", "text/csv")).toBe(true);
+    expect(isCsvFile("positions.CSV", "")).toBe(true);
+    expect(isCsvFile("positions.txt", "text/plain")).toBe(false);
+    expect(isCsvSizeOk(1024)).toBe(true);
+    expect(isCsvSizeOk(2 * 1024 * 1024)).toBe(true);
+    expect(isCsvSizeOk(2 * 1024 * 1024 + 1)).toBe(false);
+  });
+
+  it("validates CSV row count limits", () => {
+    const text = ["a", "b", "c"].join("\n");
+    expect(isCsvRowCountOk(text, 3)).toBe(true);
+    expect(isCsvRowCountOk(text, 2)).toBe(false);
   });
 
   it("arraysEqual checks length and order", () => {

@@ -12,6 +12,9 @@ import {
   formatCurrency,
   formatPercent,
   getNextRowIndex,
+  isCsvFile,
+  isCsvRowCountOk,
+  isCsvSizeOk,
   makeRowId,
   normalizeRows,
   parseFidelityCsv,
@@ -56,6 +59,7 @@ function HomeContent() {
     initialSort ?? { key: "ticker", direction: "asc" },
   );
   const [sortOrder, setSortOrder] = useState<string[] | null>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   const getSortIndicator = (key: SortKey) =>
     sortState.key !== key
@@ -140,9 +144,28 @@ function HomeContent() {
       return;
     }
 
+    const isCsv = isCsvFile(file.name, file.type);
+    if (!isCsv) {
+      setImportError("Please upload a .csv file.");
+      event.target.value = "";
+      return;
+    }
+
+    if (!isCsvSizeOk(file.size)) {
+      setImportError("CSV file is too large (max 2MB).");
+      event.target.value = "";
+      return;
+    }
+
     const reader = new FileReader();
     reader.onload = () => {
       const text = typeof reader.result === "string" ? reader.result : "";
+      if (!isCsvRowCountOk(text)) {
+        setImportError("CSV has too many rows (max 5,000).");
+        return;
+      }
+
+      setImportError(null);
       const { cashCurrent, positions } = parseFidelityCsv(text);
       setRows((prev) => {
         const targetByTicker = new Map(
@@ -267,6 +290,11 @@ function HomeContent() {
               <p className="text-sm text-[#5b5148]">
                 Add a row for each ticker. Press "Add Row" (or Tab) to add more entries or the Trash icon to delete them.
               </p>
+              {importError ? (
+                <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b44b43]">
+                  {importError}
+                </p>
+              ) : null}
             </div>
             <div className="flex flex-wrap items-center gap-3">
               <input

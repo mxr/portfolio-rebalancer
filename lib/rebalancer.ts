@@ -69,6 +69,15 @@ export const arraysEqual = (a: string[], b: string[]) => {
   return a.every((value, index) => value === b[index]);
 };
 
+export const isCsvFile = (name: string, type: string) =>
+  type === "text/csv" || name.toLowerCase().endsWith(".csv");
+
+export const isCsvSizeOk = (size: number, maxBytes = 2 * 1024 * 1024) =>
+  size <= maxBytes;
+
+export const isCsvRowCountOk = (text: string, maxRows = 5000) =>
+  text.split(/\r?\n/).filter(Boolean).length <= maxRows;
+
 export const getNextRowIndex = (rows: Row[]) => {
   const maxIndex = rows.reduce((max, row) => {
     const match = row.id.match(/^row-(\d+)$/);
