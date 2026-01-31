@@ -248,10 +248,10 @@ function HomeContent() {
             <h1 className="text-4xl font-semibold tracking-tight text-[#161515] sm:text-5xl">
               Rebalance your portfolio.
             </h1>
-            <p className="max-w-2xl text-base text-[#4a4037] sm:text-lg">
+            <p className="w-full text-base text-[#4a4037] sm:text-lg">
               Enter tickers, amounts, and target allocation percentages. The
               calculator updates instantly with how much to sell or buy per
-              holding to reach the target allocation. It can also read a .csv of your Positions downloaded from Fidelity
+              holding to reach the target allocation. A trade summary is shown at the bottom. It can also read a .csv of your Positions downloaded from Fidelity
               instead (this tool is not affiliated with Fidelity in any way). Everything runs locally
               in your browser - data never leaves your machine.
             </p>
@@ -484,7 +484,7 @@ function HomeContent() {
                               d="M4 6H20L18.4199 20.2209C18.3074 21.2337 17.4512 22 16.4321 22H7.56786C6.54876 22 5.69264 21.2337 5.5801 20.2209L4 6Z"
                             />
                             <path
-                              d="M7.34491 3.14716C7.67506 2.44685 8.37973 2 9.15396 2H14.846C15.6203 2 16.3249 2.44685 16.6551 3.14716L18 6H6L7.34491 3.14716Z"
+                              d="M7.34491 2.4C7.67506 1.7 8.37973 1.3 9.15396 1.3H14.846C15.6203 1.3 16.3249 1.7 16.6551 2.4L18.6 6H5.4L7.34491 2.4Z"
                             />
                             <path d="M2 6H22" />
                             <path d="M10 11V16" />
