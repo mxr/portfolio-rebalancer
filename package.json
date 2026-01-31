@@ -1,7 +1,10 @@
 {
-  "name": "nextjs",
+  "name": "nextjs-portfolio-rebalancer",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "^22"
+  },
   "scripts": {
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
@@ -17,7 +20,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
+    "@types/node": "^22",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "@vitest/coverage-v8": "^2.1.4",
