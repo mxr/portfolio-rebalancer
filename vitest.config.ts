@@ -13,6 +13,14 @@ export default defineConfig({
       provider: "v8",
       reporter: ["text", "html"],
       reportsDirectory: "coverage",
+      include: ["lib/**/*.ts"],
+      exclude: ["**/*.d.ts"],
+      thresholds: {
+        lines: 98,
+        functions: 100,
+        statements: 98,
+        branches: 85,
+      },
     },
   },
 });
