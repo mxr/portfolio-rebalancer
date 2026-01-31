@@ -253,7 +253,7 @@ function HomeContent() {
               calculator updates instantly with how much to sell or buy per
               holding to reach the target allocation. A trade summary is shown at the bottom. It can also read a .csv of your Positions downloaded from Fidelity
               instead (this tool is not affiliated with Fidelity in any way). Everything runs locally
-              in your browser - data never leaves your machine.
+              in your browser - data never leaves your machine. All state is stored in the URL so you can save the page for later or share it with others.
             </p>
           </div>
         </header>
