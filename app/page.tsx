@@ -207,7 +207,7 @@ function HomeContent() {
   }, [rows, sortOrder]);
 
   useEffect(function syncUrlState() {
-    const encodedRows = serializeRows(rows, totals.cashTarget);
+    const encodedRows = serializeRows(sortedRows, totals.cashTarget);
     const sortValue = sortOrder
       ? `${sortState.key}:${sortState.direction}`
       : "";
@@ -527,10 +527,12 @@ function HomeContent() {
                   {tradeSummary.sells.map((item) => (
                     <div
                       key={`sell-${item.ticker}`}
-                      className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2 text-sm text-[#3f372f]"
+                      className="flex w-full min-w-0 flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-sm text-[#3f372f] sm:flex-row sm:items-center sm:justify-between"
                     >
                       <span className="font-semibold">{item.ticker}</span>
-                      <span>{formatCurrency(item.amount)}</span>
+                      <span className="truncate sm:text-right">
+                        {formatCurrency(item.amount)}
+                      </span>
                     </div>
                   ))}
                 </div>
@@ -550,10 +552,12 @@ function HomeContent() {
                   {tradeSummary.buys.map((item) => (
                     <div
                       key={`buy-${item.ticker}`}
-                      className="flex items-center justify-between rounded-xl bg-white/80 px-3 py-2 text-sm text-[#2f3a30]"
+                      className="flex w-full min-w-0 flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-sm text-[#2f3a30] sm:flex-row sm:items-center sm:justify-between"
                     >
                       <span className="font-semibold">{item.ticker}</span>
-                      <span>{formatCurrency(item.amount)}</span>
+                      <span className="truncate sm:text-right">
+                        {formatCurrency(item.amount)}
+                      </span>
                     </div>
                   ))}
                 </div>
