@@ -311,17 +311,6 @@ function HomeContent() {
               >
                 Process CSV
               </button>
-              <button
-                type="button"
-                onClick={() => {
-                  const newRow = createRow(makeRowId(nextRowIndex.current));
-                  nextRowIndex.current += 1;
-                  setRows((prev) => [...prev, newRow]);
-                }}
-                className="inline-flex items-center gap-2 rounded-full border border-[#1b1a17] px-5 py-2 text-sm font-semibold text-[#1b1a17] transition hover:-translate-y-0.5 hover:bg-[#f1e7db]"
-              >
-                Add row
-              </button>
             </div>
           </div>
 
@@ -525,6 +514,20 @@ function HomeContent() {
                 );
               })}
             </div>
+          </div>
+
+          <div className="mt-6 flex flex-wrap justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                const newRow = createRow(makeRowId(nextRowIndex.current));
+                nextRowIndex.current += 1;
+                setRows((prev) => [...prev, newRow]);
+              }}
+              className="inline-flex items-center gap-2 rounded-full border border-[#1b1a17] px-5 py-2 text-sm font-semibold text-[#1b1a17] transition hover:-translate-y-0.5 hover:bg-[#f1e7db]"
+            >
+              Add row
+            </button>
           </div>
 
         </section>
