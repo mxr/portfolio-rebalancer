@@ -262,7 +262,11 @@ export const parseFidelityCsv = (text: string) => {
     line.toLowerCase().startsWith("account number,"),
   );
   if (headerIndex === -1) {
-    return { cashCurrent: 0, positions: [] as { ticker: string; current: number }[] };
+    return {
+      cashCurrent: 0,
+      positions: [] as { ticker: string; current: number }[],
+      pendingActivity: 0,
+    };
   }
 
   const header = parseCsvLine(lines[headerIndex]).map((value) =>
@@ -273,12 +277,17 @@ export const parseFidelityCsv = (text: string) => {
   const currentValueIndex = header.indexOf("current value");
 
   if (symbolIndex === -1 || currentValueIndex === -1) {
-    return { cashCurrent: 0, positions: [] as { ticker: string; current: number }[] };
+    return {
+      cashCurrent: 0,
+      positions: [] as { ticker: string; current: number }[],
+      pendingActivity: 0,
+    };
   }
 
   const positions: { ticker: string; current: number }[] = [];
   const positionMap = new Map<string, number>();
   let cashCurrent = 0;
+  let pendingActivity = 0;
 
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
     const line = lines[i];
@@ -296,7 +305,11 @@ export const parseFidelityCsv = (text: string) => {
     const currentValue = fields[currentValueIndex] ?? "";
     const current = parseCurrency(currentValue);
 
+    const isPendingActivity =
+      symbol.trim().toUpperCase() === "PENDING ACTIVITY" ||
+      /pending activity/i.test(description);
     const isCash =
+      isPendingActivity ||
       symbol.trim().length === 0 ||
       symbol.includes("**") ||
       /money market/i.test(description) ||
@@ -304,6 +317,9 @@ export const parseFidelityCsv = (text: string) => {
 
     if (isCash) {
       cashCurrent += current;
+      if (isPendingActivity) {
+        pendingActivity += current;
+      }
       continue;
     }
 
@@ -316,5 +332,5 @@ export const parseFidelityCsv = (text: string) => {
     positions.push({ ticker, current });
   }
 
-  return { cashCurrent, positions };
+  return { cashCurrent, positions, pendingActivity };
 };
