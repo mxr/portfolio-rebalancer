@@ -188,6 +188,7 @@ describe("rebalancer helpers", () => {
     const csv = ["Symbol,Description", "AAA,Alpha"].join("\n");
     const parsed = parseFidelityCsv(csv);
     expect(parsed.positions).toEqual([]);
+    expect(parsed.pendingActivity).toBe(0);
   });
 
   it("handles Fidelity CSV without current value column", () => {
@@ -197,6 +198,7 @@ describe("rebalancer helpers", () => {
     ].join("\n");
     const parsed = parseFidelityCsv(csv);
     expect(parsed.positions).toEqual([]);
+    expect(parsed.pendingActivity).toBe(0);
   });
 
   it("parses Fidelity CSV cash and positions", () => {
@@ -205,12 +207,14 @@ describe("rebalancer helpers", () => {
       "123,Account,AAA,ALPHA INC,10,$10.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
       "123,Account,ACME,\"ACME, INC\",5,$20.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
       "123,Account,QUOT,\"ACME \"\"HOLDINGS\"\"\",5,$20.00,+$0.10,$150.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
+      "123,Account,PENDING ACTIVITY,PENDING ACTIVITY,,,,$42.00,,,,,0.00%,,,Cash,",
       "123,Account,FDRXX**,HELD IN MONEY MARKET,,,,$250.00,,,,,5.00%,,,Cash,",
       "\"Date downloaded Jan-27-2026 2:05 p.m ET\"",
     ].join("\n");
 
     const parsed = parseFidelityCsv(csv);
-    expect(parsed.cashCurrent).toBeCloseTo(250);
+    expect(parsed.cashCurrent).toBeCloseTo(292);
+    expect(parsed.pendingActivity).toBeCloseTo(42);
     expect(parsed.positions).toEqual([
       { ticker: "AAA", current: 100 },
       { ticker: "ACME", current: 100 },

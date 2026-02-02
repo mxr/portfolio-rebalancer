@@ -60,6 +60,7 @@ function HomeContent() {
   );
   const [sortOrder, setSortOrder] = useState<string[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  const [pendingActivity, setPendingActivity] = useState<number | null>(null);
 
   const getSortIndicator = (key: SortKey) =>
     sortState.key !== key
@@ -113,6 +114,12 @@ function HomeContent() {
   );
 
   const handleRowChange = (id: string, key: keyof Row, value: string) => {
+    if (key === "current") {
+      const cashRowId = rows[0]?.id;
+      if (id === cashRowId) {
+        setPendingActivity(null);
+      }
+    }
     setRows((prev) =>
       prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)),
     );
@@ -147,12 +154,14 @@ function HomeContent() {
     const isCsv = isCsvFile(file.name, file.type);
     if (!isCsv) {
       setImportError("Please upload a .csv file.");
+      setPendingActivity(null);
       event.target.value = "";
       return;
     }
 
     if (!isCsvSizeOk(file.size)) {
       setImportError("CSV file is too large (max 2MB).");
+      setPendingActivity(null);
       event.target.value = "";
       return;
     }
@@ -162,11 +171,14 @@ function HomeContent() {
       const text = typeof reader.result === "string" ? reader.result : "";
       if (!isCsvRowCountOk(text)) {
         setImportError("CSV has too many rows (max 5,000).");
+        setPendingActivity(null);
         return;
       }
 
       setImportError(null);
-      const { cashCurrent, positions } = parseFidelityCsv(text);
+      const { cashCurrent, positions, pendingActivity: pending } =
+        parseFidelityCsv(text);
+      setPendingActivity(Number.isFinite(pending) ? pending : 0);
       setRows((prev) => {
         const targetByTicker = new Map(
           prev.slice(1).map((row) => [row.ticker.toUpperCase(), row.target]),
@@ -380,25 +392,38 @@ function HomeContent() {
                       isCash ? "bg-[#fbf6ef]/70" : "bg-transparent"
                     }`}
                   >
-                    <input
-                      id={`ticker-${row.id}`}
-                      value={row.ticker}
-                      onChange={(event) =>
-                        handleRowChange(
-                          row.id,
-                          "ticker",
-                          event.target.value.toUpperCase(),
-                        )
-                      }
-                      onBlur={applySortOrderOnBlur}
-                      readOnly={isCash}
-                      placeholder="VTI"
-                      className={`h-12 rounded-xl border px-3 text-sm font-medium outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60 ${
-                        isCash
-                          ? "border-[#e6d7c7] bg-[#fff7ed] text-[#7a6757]"
-                          : "border-[#e6d7c7] bg-[#fefbf7] text-[#1d1b18]"
-                      }`}
-                    />
+                    <div className="relative">
+                      <input
+                        id={`ticker-${row.id}`}
+                        value={row.ticker}
+                        onChange={(event) =>
+                          handleRowChange(
+                            row.id,
+                            "ticker",
+                            event.target.value.toUpperCase(),
+                          )
+                        }
+                        onBlur={applySortOrderOnBlur}
+                        readOnly={isCash}
+                        placeholder="VTI"
+                        className={`h-12 w-full rounded-xl border px-3 text-sm font-medium outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60 ${
+                          isCash
+                            ? "border-[#e6d7c7] bg-[#fff7ed] text-[#7a6757]"
+                            : "border-[#e6d7c7] bg-[#fefbf7] text-[#1d1b18]"
+                        } ${isCash && pendingActivity ? "pr-10" : ""}`}
+                      />
+                      {isCash && pendingActivity !== null ? (
+                        <span className="group absolute right-3 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-[#d6c5b3] bg-[#fff7ed] text-[10px] font-semibold text-[#7a6757]">
+                          i
+                          <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-max max-w-xs -translate-x-1/2 whitespace-nowrap rounded-lg border border-[#e6d7c7] bg-white px-3 py-2 text-[11px] font-medium text-[#4a4037] opacity-0 shadow-[0_8px_20px_rgba(30,27,23,0.15)] transition group-hover:opacity-100">
+                            Includes pending activity:{" "}
+                            {Number.isFinite(pendingActivity)
+                              ? formatCurrency(pendingActivity)
+                              : "$0.00"}
+                          </span>
+                        </span>
+                      ) : null}
+                    </div>
                     <div className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8a7768]">
                         $
