@@ -265,7 +265,7 @@ export const parseFidelityCsv = (text: string) => {
     return {
       cashCurrent: 0,
       positions: [] as { ticker: string; current: number }[],
-      pendingActivity: 0,
+      pendingActivity: null,
     };
   }
 
@@ -280,14 +280,14 @@ export const parseFidelityCsv = (text: string) => {
     return {
       cashCurrent: 0,
       positions: [] as { ticker: string; current: number }[],
-      pendingActivity: 0,
+      pendingActivity: null,
     };
   }
 
   const positions: { ticker: string; current: number }[] = [];
   const positionMap = new Map<string, number>();
   let cashCurrent = 0;
-  let pendingActivity = 0;
+  let pendingActivity: number | null = null;
 
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
     const line = lines[i];
@@ -318,7 +318,7 @@ export const parseFidelityCsv = (text: string) => {
     if (isCash) {
       cashCurrent += current;
       if (isPendingActivity) {
-        pendingActivity += current;
+        pendingActivity = (pendingActivity ?? 0) + current;
       }
       continue;
     }
