@@ -178,7 +178,7 @@ function HomeContent() {
       setImportError(null);
       const { cashCurrent, positions, pendingActivity: pending } =
         parseFidelityCsv(text);
-      setPendingActivity(Number.isFinite(pending) ? pending : 0);
+      setPendingActivity(pending);
       setRows((prev) => {
         const targetByTicker = new Map(
           prev.slice(1).map((row) => [row.ticker.toUpperCase(), row.target]),
@@ -410,16 +410,14 @@ function HomeContent() {
                           isCash
                             ? "border-[#e6d7c7] bg-[#fff7ed] text-[#7a6757]"
                             : "border-[#e6d7c7] bg-[#fefbf7] text-[#1d1b18]"
-                        } ${isCash && pendingActivity ? "pr-10" : ""}`}
+                        } ${isCash && pendingActivity !== null ? "pr-10" : ""}`}
                       />
                       {isCash && pendingActivity !== null ? (
                         <span className="group absolute right-3 top-1/2 z-10 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full border border-[#d6c5b3] bg-[#fff7ed] text-[10px] font-semibold text-[#7a6757]">
                           i
                           <span className="pointer-events-none absolute left-1/2 top-full z-20 mt-2 w-max max-w-xs -translate-x-1/2 whitespace-nowrap rounded-lg border border-[#e6d7c7] bg-white px-3 py-2 text-[11px] font-medium text-[#4a4037] opacity-0 shadow-[0_8px_20px_rgba(30,27,23,0.15)] transition group-hover:opacity-100">
                             Includes pending activity:{" "}
-                            {Number.isFinite(pendingActivity)
-                              ? formatCurrency(pendingActivity)
-                              : "$0.00"}
+                            {formatCurrency(pendingActivity)}
                           </span>
                         </span>
                       ) : null}

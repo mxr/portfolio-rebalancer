@@ -188,7 +188,7 @@ describe("rebalancer helpers", () => {
     const csv = ["Symbol,Description", "AAA,Alpha"].join("\n");
     const parsed = parseFidelityCsv(csv);
     expect(parsed.positions).toEqual([]);
-    expect(parsed.pendingActivity).toBe(0);
+    expect(parsed.pendingActivity).toBeNull();
   });
 
   it("handles Fidelity CSV without current value column", () => {
@@ -198,7 +198,19 @@ describe("rebalancer helpers", () => {
     ].join("\n");
     const parsed = parseFidelityCsv(csv);
     expect(parsed.positions).toEqual([]);
-    expect(parsed.pendingActivity).toBe(0);
+    expect(parsed.pendingActivity).toBeNull();
+  });
+
+  it("handles Fidelity CSV without pending activity rows", () => {
+    const csv = [
+      "Account Number,Account Name,Symbol,Description,Quantity,Last Price,Last Price Change,Current Value,Today's Gain/Loss Dollar,Today's Gain/Loss Percent,Total Gain/Loss Dollar,Total Gain/Loss Percent,Percent Of Account,Cost Basis Total,Average Cost Basis,Type",
+      "123,Account,AAA,ALPHA INC,10,$10.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
+      "123,Account,FDRXX**,HELD IN MONEY MARKET,,,,$250.00,,,,,5.00%,,,Cash,",
+      "\"Date downloaded Feb-06-2026 9:00 a.m ET\"",
+    ].join("\n");
+
+    const parsed = parseFidelityCsv(csv);
+    expect(parsed.pendingActivity).toBeNull();
   });
 
   it("parses Fidelity CSV cash and positions", () => {
