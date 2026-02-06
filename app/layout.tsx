@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   description: "Frontend-only portfolio rebalancing calculator.",
 };
 
-const licenseName = "Licensed under GNU Affero General Public License v3.0";
 
 export default function RootLayout({
   children,
@@ -35,7 +34,7 @@ export default function RootLayout({
         <footer className="border-t border-white/60 bg-white/40 px-6 py-4 text-xs text-[#5b5148] sm:px-10">
           <div className="mx-auto flex max-w-6xl flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span>Version {packageJson.version}</span>
-            <span>{licenseName}</span>
+            <span>Licensed under GNU Affero General Public License v3.0</span>
           </div>
         </footer>
       </body>
