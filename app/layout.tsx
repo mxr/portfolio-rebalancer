@@ -19,7 +19,6 @@ export const metadata: Metadata = {
   description: "Frontend-only portfolio rebalancing calculator.",
 };
 
-
 export default function RootLayout({
   children,
 }: Readonly<{
