@@ -9,6 +9,7 @@
     "dev": "next dev --turbopack",
     "build": "npm run lint && npm run test && next build --turbopack",
     "start": "next start",
+    "tag": "bash scripts/tag.sh",
     "lint": "eslint . --fix",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
