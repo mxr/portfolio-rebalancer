@@ -70,7 +70,7 @@ function HomeContent() {
     field: EditableField;
     message: string;
   } | null>(null);
-  const invalidHintTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
+  const invalidHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getSortIndicator = (key: SortKey) =>
     sortState.key !== key
@@ -127,9 +127,9 @@ function HomeContent() {
   ) => {
     setInvalidHint({ id, field, message });
     if (invalidHintTimeoutRef.current) {
-      window.clearTimeout(invalidHintTimeoutRef.current);
+      clearTimeout(invalidHintTimeoutRef.current);
     }
-    invalidHintTimeoutRef.current = window.setTimeout(() => {
+    invalidHintTimeoutRef.current = setTimeout(() => {
       setInvalidHint(null);
       invalidHintTimeoutRef.current = null;
     }, 1800);
@@ -137,7 +137,7 @@ function HomeContent() {
 
   useEffect(() => () => {
     if (invalidHintTimeoutRef.current) {
-      window.clearTimeout(invalidHintTimeoutRef.current);
+      clearTimeout(invalidHintTimeoutRef.current);
     }
   }, []);
 
