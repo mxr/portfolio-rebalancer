@@ -175,6 +175,8 @@ describe("rebalancer helpers", () => {
     expect(normalizeCurrencyOnBlur("0012.30")).toBe("12.30");
     expect(normalizeCurrencyOnBlur("00012")).toBe("12");
     expect(normalizeCurrencyOnBlur("000.50")).toBe("0.50");
+    expect(normalizeCurrencyOnBlur("")).toBe("");
+    expect(normalizeCurrencyOnBlur(".")).toBe("");
   });
 
   it("sanitizes target percent input to max two decimals", () => {
@@ -193,6 +195,25 @@ describe("rebalancer helpers", () => {
     expect(normalizePercentOnBlur("0012.30")).toBe("12.30");
     expect(normalizePercentOnBlur("00012")).toBe("12");
     expect(normalizePercentOnBlur("000.5")).toBe("0.5");
+    expect(normalizePercentOnBlur("")).toBe("");
+    expect(normalizePercentOnBlur(".")).toBe("");
+  });
+
+  it("throws when sort key is invalid at runtime", () => {
+    const rows = [
+      { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
+      { id: makeRowId(1), ticker: "AAA", current: "10", target: "50" },
+      { id: makeRowId(2), ticker: "BBB", current: "20", target: "50" },
+    ];
+    const totals = computeTotals(rows);
+    expect(() =>
+      computeSortOrder(
+        rows,
+        totals,
+        "invalid" as unknown as "ticker",
+        "asc",
+      ),
+    ).toThrow("Unreachable");
   });
 
   it("sanitizes parsed rows from URL state", () => {
@@ -288,5 +309,18 @@ describe("rebalancer helpers", () => {
       { ticker: "ACME", current: 100 },
       { ticker: "QUOT", current: 150 },
     ]);
+  });
+
+  it("skips non-cash CSV symbols that sanitize to empty tickers", () => {
+    const csv = [
+      "Account Number,Account Name,Symbol,Description,Current Value",
+      "123,Account,@@@,ALPHA INC,$123.00",
+      "\"Date downloaded Jan-27-2026 2:05 p.m ET\"",
+    ].join("\n");
+
+    const parsed = parseFidelityCsv(csv);
+    expect(parsed.cashCurrent).toBe(0);
+    expect(parsed.positions).toEqual([]);
+    expect(parsed.pendingActivity).toBeNull();
   });
 });
