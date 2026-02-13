@@ -12,10 +12,15 @@ import {
   isCsvRowCountOk,
   isCsvSizeOk,
   makeRowId,
+  normalizeCurrencyOnBlur,
   normalizeRows,
+  normalizePercentOnBlur,
   parseFidelityCsv,
   parseRows,
   parseCurrency,
+  sanitizeCurrencyInput,
+  sanitizeTargetPercentInput,
+  sanitizeTickerInput,
   serializeRows,
   toNumber,
   getNextRowIndex,
@@ -150,6 +155,78 @@ describe("rebalancer helpers", () => {
     expect(parseCurrency("$1,234.56")).toBeCloseTo(1234.56);
   });
 
+  it("sanitizes ticker input to uppercase A-Z0-9", () => {
+    expect(sanitizeTickerInput("aapl")).toBe("AAPL");
+    expect(sanitizeTickerInput(" brk.b ")).toBe("BRKB");
+    expect(sanitizeTickerInput("ms-ft$!")).toBe("MSFT");
+  });
+
+  it("sanitizes currency input to max two decimals", () => {
+    expect(sanitizeCurrencyInput("12.3456")).toBe("12.34");
+    expect(sanitizeCurrencyInput("$1,234.56")).toBe("1234.56");
+    expect(sanitizeCurrencyInput("abc.9x1z2")).toBe(".91");
+  });
+
+  it("normalizes currency on blur", () => {
+    expect(normalizeCurrencyOnBlur("12.3")).toBe("12.30");
+    expect(normalizeCurrencyOnBlur("12.00")).toBe("12");
+    expect(normalizeCurrencyOnBlur(".5")).toBe("0.50");
+    expect(normalizeCurrencyOnBlur("10.")).toBe("10");
+    expect(normalizeCurrencyOnBlur("0012.30")).toBe("12.30");
+    expect(normalizeCurrencyOnBlur("00012")).toBe("12");
+    expect(normalizeCurrencyOnBlur("000.50")).toBe("0.50");
+    expect(normalizeCurrencyOnBlur("")).toBe("");
+    expect(normalizeCurrencyOnBlur(".")).toBe("");
+  });
+
+  it("sanitizes target percent input to max two decimals", () => {
+    expect(sanitizeTargetPercentInput("10")).toBe("10");
+    expect(sanitizeTargetPercentInput("10.5")).toBe("10.5");
+    expect(sanitizeTargetPercentInput("10.67")).toBe("10.67");
+    expect(sanitizeTargetPercentInput("10.")).toBe("10.");
+    expect(sanitizeTargetPercentInput("abc12.599")).toBe("12.59");
+  });
+
+  it("normalizes target percent on blur", () => {
+    expect(normalizePercentOnBlur("12.00")).toBe("12");
+    expect(normalizePercentOnBlur("12.30")).toBe("12.30");
+    expect(normalizePercentOnBlur(".5")).toBe("0.5");
+    expect(normalizePercentOnBlur("10.")).toBe("10");
+    expect(normalizePercentOnBlur("0012.30")).toBe("12.30");
+    expect(normalizePercentOnBlur("00012")).toBe("12");
+    expect(normalizePercentOnBlur("000.5")).toBe("0.5");
+    expect(normalizePercentOnBlur("")).toBe("");
+    expect(normalizePercentOnBlur(".")).toBe("");
+  });
+
+  it("throws when sort key is invalid at runtime", () => {
+    const rows = [
+      { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
+      { id: makeRowId(1), ticker: "AAA", current: "10", target: "50" },
+      { id: makeRowId(2), ticker: "BBB", current: "20", target: "50" },
+    ];
+    const totals = computeTotals(rows);
+    expect(() =>
+      computeSortOrder(
+        rows,
+        totals,
+        "invalid" as unknown as "ticker",
+        "asc",
+      ),
+    ).toThrow("Unreachable");
+  });
+
+  it("sanitizes parsed rows from URL state", () => {
+    const parsed = parseRows("brk.b$|$100.999|12.678");
+    expect(parsed).not.toBeNull();
+    expect(parsed?.[0]).toEqual({
+      id: makeRowId(0),
+      ticker: "BRKB",
+      current: "100.99",
+      target: "12.67",
+    });
+  });
+
   it("formats currency in USD", () => {
     expect(formatCurrency(12.5)).toContain("$");
   });
@@ -232,5 +309,18 @@ describe("rebalancer helpers", () => {
       { ticker: "ACME", current: 100 },
       { ticker: "QUOT", current: 150 },
     ]);
+  });
+
+  it("skips non-cash CSV symbols that sanitize to empty tickers", () => {
+    const csv = [
+      "Account Number,Account Name,Symbol,Description,Current Value",
+      "123,Account,@@@,ALPHA INC,$123.00",
+      "\"Date downloaded Jan-27-2026 2:05 p.m ET\"",
+    ].join("\n");
+
+    const parsed = parseFidelityCsv(csv);
+    expect(parsed.cashCurrent).toBe(0);
+    expect(parsed.positions).toEqual([]);
+    expect(parsed.pendingActivity).toBeNull();
   });
 });

@@ -43,6 +43,61 @@ export const toNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
+export const sanitizeTickerInput = (value: string) =>
+  value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+
+const sanitizeDecimalInput = (value: string) => {
+  const numeric = value.replace(/[^0-9.]/g, "");
+  const [whole = "", ...fractionParts] = numeric.split(".");
+  const fraction = fractionParts.join("").slice(0, 2);
+  if (numeric.includes(".")) {
+    return `${whole}.${fraction}`;
+  }
+  return whole;
+};
+
+export const sanitizeCurrencyInput = (value: string) =>
+  sanitizeDecimalInput(value);
+
+export const sanitizeTargetPercentInput = (value: string) =>
+  sanitizeDecimalInput(value);
+
+const normalizeDecimalOnBlur = (
+  value: string,
+  sanitize: (next: string) => string,
+  padSingleDecimalPlace: boolean,
+) => {
+  let normalized = sanitize(value);
+  if (!normalized || normalized === ".") {
+    return "";
+  }
+  if (normalized.startsWith(".")) {
+    normalized = `0${normalized}`;
+  }
+  if (normalized.endsWith(".")) {
+    normalized = normalized.slice(0, -1);
+  }
+  const [wholeRaw = "", fractionPart] = normalized.split(".");
+  const strippedWhole = wholeRaw.replace(/^0+(?=\d)/, "");
+  normalized = fractionPart !== undefined
+    ? `${strippedWhole}.${fractionPart}`
+    : strippedWhole;
+  if (/^\d+\.00$/.test(normalized)) {
+    return normalized.slice(0, -3);
+  }
+  if (padSingleDecimalPlace && /^\d+\.\d$/.test(normalized)) {
+    return `${normalized}0`;
+  }
+  return normalized;
+};
+
+export const normalizeCurrencyOnBlur = (value: string) =>
+  normalizeDecimalOnBlur(value, sanitizeCurrencyInput, true);
+
+export const normalizePercentOnBlur = (value: string) => {
+  return normalizeDecimalOnBlur(value, sanitizeTargetPercentInput, false);
+};
+
 export const parseCurrency = (value: string) => {
   const normalized = value.replace(/[$,]/g, "").trim();
   const parsed = Number(normalized);
@@ -111,9 +166,9 @@ export const parseRows = (value: string | null) => {
     .filter((entry) => entry.some((item) => item.trim().length > 0))
     .map(([ticker = "", current = "", target = ""], index) => ({
       id: makeRowId(index),
-      ticker,
-      current,
-      target,
+      ticker: sanitizeTickerInput(ticker),
+      current: sanitizeCurrencyInput(current),
+      target: sanitizeTargetPercentInput(target),
     }));
 
   return rows.length > 0 ? rows : null;
@@ -323,7 +378,10 @@ export const parseFidelityCsv = (text: string) => {
       continue;
     }
 
-    const ticker = symbol.trim().toUpperCase();
+    const ticker = sanitizeTickerInput(symbol.trim());
+    if (!ticker) {
+      continue;
+    }
     const nextValue = (positionMap.get(ticker) ?? 0) + current;
     positionMap.set(ticker, nextValue);
   }

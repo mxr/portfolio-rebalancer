@@ -16,9 +16,14 @@ import {
   isCsvSizeOk,
   makeRowId,
   normalizeRows,
+  normalizeCurrencyOnBlur,
+  normalizePercentOnBlur,
   parseFidelityCsv,
   parseRows,
   serializeRows,
+  sanitizeCurrencyInput,
+  sanitizeTargetPercentInput,
+  sanitizeTickerInput,
   toNumber,
   type Row,
   type SortKey,
@@ -43,6 +48,8 @@ const parseSortState = (value: string | null): SortState | null => {
 };
 
 function HomeContent() {
+  type EditableField = "ticker" | "current" | "target";
+
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -58,6 +65,12 @@ function HomeContent() {
   );
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingActivity, setPendingActivity] = useState<number | null>(null);
+  const [invalidHint, setInvalidHint] = useState<{
+    id: string;
+    field: EditableField;
+    message: string;
+  } | null>(null);
+  const invalidHintTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const getSortIndicator = (key: SortKey) =>
     sortState.key !== key
@@ -106,6 +119,27 @@ function HomeContent() {
       prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)),
     );
   };
+
+  const showInvalidHint = (
+    id: string,
+    field: EditableField,
+    message: string,
+  ) => {
+    setInvalidHint({ id, field, message });
+    if (invalidHintTimeoutRef.current) {
+      clearTimeout(invalidHintTimeoutRef.current);
+    }
+    invalidHintTimeoutRef.current = setTimeout(() => {
+      setInvalidHint(null);
+      invalidHintTimeoutRef.current = null;
+    }, 1800);
+  };
+
+  useEffect(() => () => {
+    if (invalidHintTimeoutRef.current) {
+      clearTimeout(invalidHintTimeoutRef.current);
+    }
+  }, []);
 
   const handleTabAddRow = (
     event: React.KeyboardEvent<HTMLInputElement>,
@@ -346,11 +380,20 @@ function HomeContent() {
                         id={`ticker-${row.id}`}
                         value={row.ticker}
                         onChange={(event) =>
-                          handleRowChange(
-                            row.id,
-                            "ticker",
-                            event.target.value.toUpperCase(),
-                          )
+                          (() => {
+                            const raw = event.target.value;
+                            const sanitized = sanitizeTickerInput(raw);
+                            const hadIllegalChars =
+                              sanitized !== raw.toUpperCase();
+                            if (hadIllegalChars) {
+                              showInvalidHint(
+                                row.id,
+                                "ticker",
+                                "Ticker allows A-Z and 0-9 only.",
+                              );
+                            }
+                            handleRowChange(row.id, "ticker", sanitized);
+                          })()
                         }
                         readOnly={isCash}
                         placeholder="VTI"
@@ -369,21 +412,45 @@ function HomeContent() {
                           </span>
                         </span>
                       ) : null}
+                      {invalidHint?.id === row.id &&
+                      invalidHint.field === "ticker" ? (
+                        <div className="pointer-events-none absolute left-0 top-full z-20 mt-1 rounded-lg border border-[#e6d7c7] bg-white px-3 py-1 text-[11px] font-medium text-[#7d3d37] shadow-[0_8px_20px_rgba(30,27,23,0.15)]">
+                          {invalidHint.message}
+                        </div>
+                      ) : null}
                     </div>
                     <div className="relative">
                       <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-semibold text-[#8a7768]">
                         $
                       </span>
                       <input
-                        type="number"
+                        type="text"
                         inputMode="decimal"
                         step="0.01"
                         value={row.current}
                         onChange={(event) =>
-                          handleRowChange(row.id, "current", event.target.value)
+                          (() => {
+                            const raw = event.target.value;
+                            const sanitized = sanitizeCurrencyInput(raw);
+                            if (sanitized !== raw) {
+                              showInvalidHint(
+                                row.id,
+                                "current",
+                                "Amount must be a number with up to 2 decimals.",
+                              );
+                            }
+                            handleRowChange(row.id, "current", sanitized);
+                          })()
                         }
                         onKeyDown={(event) =>
                           handleTabAddRow(event, isLastRow && isCash)
+                        }
+                        onBlur={(event) =>
+                          handleRowChange(
+                            row.id,
+                            "current",
+                            normalizeCurrencyOnBlur(event.target.value),
+                          )
                         }
                         placeholder="0.00"
                         className={`h-12 w-full appearance-none rounded-xl border pl-7 pr-3 text-sm font-medium outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60 ${
@@ -392,6 +459,12 @@ function HomeContent() {
                             : "border-[#e6d7c7] bg-[#fefbf7] text-[#1d1b18]"
                         }`}
                       />
+                      {invalidHint?.id === row.id &&
+                      invalidHint.field === "current" ? (
+                        <div className="pointer-events-none absolute left-0 top-full z-20 mt-1 rounded-lg border border-[#e6d7c7] bg-white px-3 py-1 text-[11px] font-medium text-[#7d3d37] shadow-[0_8px_20px_rgba(30,27,23,0.15)]">
+                          {invalidHint.message}
+                        </div>
+                      ) : null}
                     </div>
                     {isCash ? (
                       <div className="relative">
@@ -408,22 +481,44 @@ function HomeContent() {
                           %
                         </span>
                         <input
-                          type="number"
+                          type="text"
                           inputMode="decimal"
+                          step="0.01"
                           value={row.target}
                           onChange={(event) =>
-                            handleRowChange(
-                              row.id,
-                              "target",
-                              event.target.value,
-                            )
+                            (() => {
+                              const raw = event.target.value;
+                              const sanitized =
+                                sanitizeTargetPercentInput(raw);
+                              if (sanitized !== raw) {
+                                showInvalidHint(
+                                  row.id,
+                                  "target",
+                                  "Percent must be a number with up to 2 decimals.",
+                                );
+                              }
+                              handleRowChange(row.id, "target", sanitized);
+                            })()
                           }
                           onKeyDown={(event) =>
                             handleTabAddRow(event, isLastRow)
                           }
+                          onBlur={(event) =>
+                            handleRowChange(
+                              row.id,
+                              "target",
+                              normalizePercentOnBlur(event.target.value),
+                            )
+                          }
                           placeholder="0"
                           className="h-12 w-full appearance-none rounded-xl border border-[#e6d7c7] bg-[#fefbf7] px-3 pr-8 text-sm font-medium text-[#1d1b18] outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60"
                         />
+                        {invalidHint?.id === row.id &&
+                        invalidHint.field === "target" ? (
+                          <div className="pointer-events-none absolute left-0 top-full z-20 mt-1 rounded-lg border border-[#e6d7c7] bg-white px-3 py-1 text-[11px] font-medium text-[#7d3d37] shadow-[0_8px_20px_rgba(30,27,23,0.15)]">
+                            {invalidHint.message}
+                          </div>
+                        ) : null}
                       </div>
                     )}
                     <div
