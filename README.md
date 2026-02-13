@@ -1,4 +1,4 @@
-# Nextjs Portfolio Rebalancer
+# Portfolio Rebalancer
 
 Frontend-only portfolio rebalancing tool built with Next.js. Enter tickers, current dollar amounts, and target allocations to see buy/sell guidance. Optionally import a Fidelity CSV to populate current values.
 
@@ -10,19 +10,19 @@ Frontend-only portfolio rebalancing tool built with Next.js. Enter tickers, curr
 - Unit tests + coverage
 
 ## Getting started
-```bash
+```sh
 npm install
 npm run dev
 ```
 
 ## Tests
-```bash
+```sh
 npm run test
 npm run test:coverage
 ```
 
 ## Build
-```bash
+```sh
 npm run build
 ```
 
