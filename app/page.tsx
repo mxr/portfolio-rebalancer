@@ -1,9 +1,8 @@
 "use client";
 
-import { Suspense, useMemo, useState, useEffect, useRef } from "react";
+import { Suspense, useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
-  arraysEqual,
   computeSortOrder,
   computeTotals,
   computeTradeSummary,
@@ -43,7 +42,6 @@ const parseSortState = (value: string | null): SortState | null => {
   return null;
 };
 
-
 function HomeContent() {
   const router = useRouter();
   const pathname = usePathname();
@@ -58,7 +56,6 @@ function HomeContent() {
   const [sortState, setSortState] = useState<SortState>(
     initialSort ?? { key: "ticker", direction: "asc" },
   );
-  const [sortOrder, setSortOrder] = useState<string[] | null>(null);
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingActivity, setPendingActivity] = useState<number | null>(null);
 
@@ -73,45 +70,30 @@ function HomeContent() {
     setSortState(function applySort(prev) {
       const direction =
         prev.key === key && prev.direction === "asc" ? "desc" : "asc";
-      setSortOrder(computeSortOrder(rows, totals, key, direction));
       return { key, direction };
     });
   };
 
-  const totals = useMemo(() => computeTotals(rows), [rows]);
-
-  const sortedRows = useMemo(() => {
+  const totals = computeTotals(rows);
+  const sortOrder = computeSortOrder(
+    rows,
+    totals,
+    sortState.key,
+    sortState.direction,
+  );
+  const sortedRows = (() => {
     if (rows.length <= 1) {
       return rows;
     }
-
     const [cashRow, ...rest] = rows;
-    if (!sortOrder) {
-      return [cashRow, ...rest];
-    }
-
     const rowMap = new Map(rest.map((row) => [row.id, row]));
     const ordered = sortOrder
       .map((id) => rowMap.get(id))
       .filter((row): row is Row => Boolean(row));
     const leftovers = rest.filter((row) => !sortOrder.includes(row.id));
-
     return [cashRow, ...ordered, ...leftovers];
-  }, [rows, sortOrder]);
-
-  const applySortOrderOnBlur = () => {
-    if (!sortOrder) {
-      return;
-    }
-    setSortOrder(
-      computeSortOrder(rows, totals, sortState.key, sortState.direction),
-    );
-  };
-
-  const tradeSummary = useMemo(
-    () => computeTradeSummary(rows, totals),
-    [rows, totals],
-  );
+  })();
+  const tradeSummary = computeTradeSummary(rows, totals);
 
   const handleRowChange = (id: string, key: keyof Row, value: string) => {
     if (key === "current") {
@@ -210,49 +192,16 @@ function HomeContent() {
     event.target.value = "";
   };
 
-  useEffect(function normalizeInitialRows() {
-    setRows((prev) => normalizeRows(prev));
-  }, []);
-
-  useEffect(function applyInitialSortFromUrl() {
-    if (!sortOrder && initialSort) {
-      setSortOrder(
-        computeSortOrder(rows, totals, initialSort.key, initialSort.direction),
-      );
-    }
-  }, [initialSort, sortOrder, rows, totals]);
-
-  useEffect(function syncSortOrderWithRows() {
-    if (!sortOrder) {
-      return;
-    }
-    setSortOrder(function syncOrder(prev) {
-      if (!prev) {
-        return prev;
-      }
-      const ids = new Set(rows.slice(1).map((row) => row.id));
-      const nextOrder = prev.filter((id) => ids.has(id));
-      rows.slice(1).forEach((row) => {
-        if (!nextOrder.includes(row.id)) {
-          nextOrder.push(row.id);
-        }
-      });
-      return arraysEqual(prev, nextOrder) ? prev : nextOrder;
-    });
-  }, [rows, sortOrder]);
-
   useEffect(function syncUrlState() {
     const encodedRows = serializeRows(sortedRows, totals.cashTarget);
-    const sortValue = sortOrder
-      ? `${sortState.key}:${sortState.direction}`
-      : "";
+    const sortValue = `${sortState.key}:${sortState.direction}`;
     const nextParams = new URLSearchParams(searchParams);
     if (encodedRows) {
       nextParams.set("rows", encodedRows);
     } else {
       nextParams.delete("rows");
     }
-    if (sortOrder) {
+    if (rows.length > 1) {
       nextParams.set("sort", sortValue);
     } else {
       nextParams.delete("sort");
@@ -266,7 +215,7 @@ function HomeContent() {
         scroll: false,
       });
     }
-  }, [pathname, router, rows, searchParams, sortOrder, sortState, totals]);
+  }, [pathname, router, rows.length, searchParams, sortState, sortedRows, totals.cashTarget]);
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f7f1e8]">
@@ -300,7 +249,7 @@ function HomeContent() {
                 Allocation Inputs
               </h2>
               <p className="text-sm text-[#5b5148]">
-                Add a row for each ticker. Press "Add Row" (or Tab) to add more entries or the Trash icon to delete them.
+                Add a row for each ticker. Press &quot;Add Row&quot; (or Tab) to add more entries or the Trash icon to delete them.
               </p>
               {importError ? (
                 <p className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[#b44b43]">
@@ -403,7 +352,6 @@ function HomeContent() {
                             event.target.value.toUpperCase(),
                           )
                         }
-                        onBlur={applySortOrderOnBlur}
                         readOnly={isCash}
                         placeholder="VTI"
                         className={`h-12 w-full rounded-xl border px-3 text-sm font-medium outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60 ${
@@ -437,7 +385,6 @@ function HomeContent() {
                         onKeyDown={(event) =>
                           handleTabAddRow(event, isLastRow && isCash)
                         }
-                        onBlur={applySortOrderOnBlur}
                         placeholder="0.00"
                         className={`h-12 w-full appearance-none rounded-xl border pl-7 pr-3 text-sm font-medium outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60 ${
                           isCash
@@ -474,7 +421,6 @@ function HomeContent() {
                           onKeyDown={(event) =>
                             handleTabAddRow(event, isLastRow)
                           }
-                          onBlur={applySortOrderOnBlur}
                           placeholder="0"
                           className="h-12 w-full appearance-none rounded-xl border border-[#e6d7c7] bg-[#fefbf7] px-3 pr-8 text-sm font-medium text-[#1d1b18] outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60"
                         />
