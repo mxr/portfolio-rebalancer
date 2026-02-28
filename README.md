@@ -2,6 +2,9 @@
 
 Frontend-only portfolio rebalancing tool built with Next.js. Enter tickers, current dollar amounts, and target allocations to see buy/sell guidance. Optionally import a Fidelity CSV to populate current values.
 
+## Live app
+- https://portfolio-rebalancer-five-woad-14.vercel.app
+
 ## Features
 - Dynamic rows with cash allocation auto-balancing to 100%
 - Trade summary (buy/sell amounts)
