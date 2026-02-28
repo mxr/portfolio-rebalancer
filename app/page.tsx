@@ -229,6 +229,7 @@ function HomeContent() {
   useEffect(function syncUrlState() {
     const encodedRows = serializeRows(sortedRows, totals.cashTarget);
     const sortValue = `${sortState.key}:${sortState.direction}`;
+    const nextSort = rows.length > 1 ? sortValue : "";
     const nextParams = new URLSearchParams(searchParams);
     if (encodedRows) {
       nextParams.set("rows", encodedRows);
@@ -243,7 +244,7 @@ function HomeContent() {
 
     const currentEncoded = searchParams.get("rows") ?? "";
     const currentSort = searchParams.get("sort") ?? "";
-    if (currentEncoded !== encodedRows || currentSort !== sortValue) {
+    if (currentEncoded !== encodedRows || currentSort !== nextSort) {
       const query = nextParams.toString();
       router.replace(query ? `${pathname}?${query}` : pathname, {
         scroll: false,
