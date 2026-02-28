@@ -25,6 +25,9 @@ npm i
 
 git add package.json package-lock.json
 git commit -m "$tag_name"
+
+# Ensure we tag from the latest main; fail if main advanced and requires manual rebase.
+git pull --ff-only origin main
 git tag "$tag_name"
 
 git push origin main "$tag_name"
