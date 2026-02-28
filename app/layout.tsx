@@ -34,6 +34,15 @@ export default function RootLayout({
           <div className="mx-auto flex max-w-6xl flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
             <span>Version {packageJson.version}</span>
             <span>Licensed under GNU Affero General Public License v3.0</span>
+            <a
+              href="https://github.com/mxr/portfolio-rebalancer"
+              className="underline hover:text-[#3b3130]"
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub repository (opens in new tab)"
+            >
+              GitHub
+            </a>
           </div>
         </footer>
       </body>
