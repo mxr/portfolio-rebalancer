@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect, useRef } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
+  computeEstimatedSaleGains,
   computeSortOrder,
   computeTotals,
   computeTradeSummary,
@@ -28,6 +29,7 @@ import {
   type Row,
   type SortKey,
   type SortState,
+  type FidelityCsvPosition,
 } from "../lib/rebalancer";
 
 const parseSortState = (value: string | null): SortState | null => {
@@ -65,6 +67,9 @@ function HomeContent() {
   );
   const [importError, setImportError] = useState<string | null>(null);
   const [pendingActivity, setPendingActivity] = useState<number | null>(null);
+  const [csvPositions, setCsvPositions] = useState<FidelityCsvPosition[] | null>(
+    null,
+  );
   const [invalidHint, setInvalidHint] = useState<{
     id: string;
     field: EditableField;
@@ -107,6 +112,17 @@ function HomeContent() {
     return [cashRow, ...ordered, ...leftovers];
   })();
   const tradeSummary = computeTradeSummary(rows, totals);
+  const estimatedSaleGains =
+    csvPositions && tradeSummary.sells.length > 0
+      ? computeEstimatedSaleGains(tradeSummary.sells, csvPositions)
+      : [];
+  const estimatedGainByTicker = new Map(
+    estimatedSaleGains.map((item) => [item.ticker, item.estimatedGain]),
+  );
+  const totalEstimatedSaleGain = estimatedSaleGains.reduce(
+    (sum, item) => sum + item.estimatedGain,
+    0,
+  );
 
   const handleRowChange = (id: string, key: keyof Row, value: string) => {
     if (key === "current") {
@@ -171,6 +187,7 @@ function HomeContent() {
     if (!isCsv) {
       setImportError("Please upload a .csv file.");
       setPendingActivity(null);
+      setCsvPositions(null);
       event.target.value = "";
       return;
     }
@@ -178,6 +195,7 @@ function HomeContent() {
     if (!isCsvSizeOk(file.size)) {
       setImportError("CSV file is too large (max 2MB).");
       setPendingActivity(null);
+      setCsvPositions(null);
       event.target.value = "";
       return;
     }
@@ -188,6 +206,7 @@ function HomeContent() {
       if (!isCsvRowCountOk(text)) {
         setImportError("CSV has too many rows (max 5,000).");
         setPendingActivity(null);
+        setCsvPositions(null);
         return;
       }
 
@@ -195,6 +214,7 @@ function HomeContent() {
       const { cashCurrent, positions, pendingActivity: pending } =
         parseFidelityCsv(text);
       setPendingActivity(pending);
+      setCsvPositions(positions);
       setRows((prev) => {
         const targetByTicker = new Map(
           prev.slice(1).map((row) => [row.ticker.toUpperCase(), row.target]),
@@ -270,9 +290,12 @@ function HomeContent() {
             <p className="w-full text-base text-[#4a4037] sm:text-lg">
               Enter tickers, amounts, and target allocation percentages. The
               calculator updates instantly with how much to sell or buy per
-              holding to reach the target allocation. A trade summary is shown at the bottom. It can also read a .csv of your Positions downloaded from Fidelity
-              instead (this tool is not affiliated with Fidelity in any way). Everything runs locally
-              in your browser - data never leaves your machine. All state is stored in the URL so you can save the page for later or share it with others.
+              holding to reach the target allocation. A trade summary is shown
+              at the bottom. You can also upload a .csv of your positions
+              downloaded from Fidelity (this tool is not affiliated with
+              Fidelity in any way) to auto-fill holdings and show estimated
+              gain/loss for sales. Everything runs locally
+              in your browser - data never leaves your machine. State is stored in the URL so you can save the page for later or share it with others.
             </p>
           </div>
         </header>
@@ -626,11 +649,27 @@ function HomeContent() {
                       className="flex w-full min-w-0 flex-col gap-1 rounded-xl bg-white/80 px-3 py-2 text-sm text-[#3f372f] sm:flex-row sm:items-center sm:justify-between"
                     >
                       <span className="font-semibold">{item.ticker}</span>
-                      <span className="truncate sm:text-right">
-                        {formatCurrency(item.amount)}
-                      </span>
+                      <div className="truncate sm:text-right">
+                        <p>{formatCurrency(item.amount)}</p>
+                        {csvPositions ? (
+                          <p className="text-xs text-[#7a6a5d]">
+                            Est. gain/loss:{" "}
+                            {formatCurrency(
+                              estimatedGainByTicker.get(item.ticker) ?? 0,
+                            )}
+                          </p>
+                        ) : null}
+                      </div>
                     </div>
                   ))}
+                  {csvPositions ? (
+                    <div className="flex w-full min-w-0 flex-col gap-1 rounded-xl border border-[#eadacc] bg-white/90 px-3 py-2 text-sm text-[#3f372f] sm:flex-row sm:items-center sm:justify-between">
+                      <span className="font-semibold">Total estimated gain/loss</span>
+                      <span className="truncate sm:text-right">
+                        {formatCurrency(totalEstimatedSaleGain)}
+                      </span>
+                    </div>
+                  ) : null}
                 </div>
               )}
             </div>
@@ -660,6 +699,13 @@ function HomeContent() {
               )}
             </div>
           </div>
+          {csvPositions ? (
+            <p className="mt-4 text-xs text-[#6c6258]">
+              Disclaimer: Estimated gain/loss assumes all lots for each security
+              have the same cost basis. Actual gain/loss depends on long-term vs
+              short-term treatment and the specific cost basis of each lot.
+            </p>
+          ) : null}
         </section>
       </main>
     </div>
