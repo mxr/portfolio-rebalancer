@@ -3,6 +3,7 @@ import {
   arraysEqual,
   createRow,
   computeSortOrder,
+  computeEstimatedSaleGains,
   computeTotals,
   computeTradeSummary,
   DEFAULT_ROWS,
@@ -105,6 +106,23 @@ describe("rebalancer helpers", () => {
     const summary = computeTradeSummary(rows, totals);
     expect(summary.buys).toHaveLength(0);
     expect(summary.sells).toHaveLength(0);
+  });
+
+  it("computes estimated gains from sell trades using csv cost basis", () => {
+    const gains = computeEstimatedSaleGains(
+      [
+        { ticker: "AAA", amount: 30 },
+        { ticker: "BBB", amount: 20 },
+      ],
+      [
+        { ticker: "AAA", current: 100, costBasis: 80 },
+        { ticker: "BBB", current: 200, costBasis: 220 },
+      ],
+    );
+    expect(gains).toEqual([
+      { ticker: "AAA", sellAmount: 30, estimatedGain: 6 },
+      { ticker: "BBB", sellAmount: 20, estimatedGain: -2 },
+    ]);
   });
 
   it("sorts by ticker and current", () => {
@@ -305,9 +323,9 @@ describe("rebalancer helpers", () => {
     expect(parsed.cashCurrent).toBeCloseTo(292);
     expect(parsed.pendingActivity).toBeCloseTo(42);
     expect(parsed.positions).toEqual([
-      { ticker: "AAA", current: 100 },
-      { ticker: "ACME", current: 100 },
-      { ticker: "QUOT", current: 150 },
+      { ticker: "AAA", current: 100, costBasis: 95 },
+      { ticker: "ACME", current: 100, costBasis: 95 },
+      { ticker: "QUOT", current: 150, costBasis: 95 },
     ]);
   });
 

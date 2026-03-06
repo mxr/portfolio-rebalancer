@@ -22,6 +22,18 @@ export type TradeSummary = {
   sells: { ticker: string; amount: number }[];
 };
 
+export type FidelityCsvPosition = {
+  ticker: string;
+  current: number;
+  costBasis: number | null;
+};
+
+export type EstimatedSaleGain = {
+  ticker: string;
+  sellAmount: number;
+  estimatedGain: number;
+};
+
 export const makeRowId = (index: number) => `row-${index}`;
 
 export const createRow = (id: string): Row => ({
@@ -279,6 +291,31 @@ export const computeTradeSummary = (
   return { buys, sells };
 };
 
+export const computeEstimatedSaleGains = (
+  sells: { ticker: string; amount: number }[],
+  csvPositions: FidelityCsvPosition[],
+) => {
+  const positionByTicker = new Map(
+    csvPositions.map((position) => [position.ticker.toUpperCase(), position]),
+  );
+  const gains: EstimatedSaleGain[] = [];
+
+  sells.forEach((sell) => {
+    const position = positionByTicker.get(sell.ticker.toUpperCase());
+    if (!position || position.current <= 0 || position.costBasis === null) {
+      return;
+    }
+    const gainRatio = (position.current - position.costBasis) / position.current;
+    gains.push({
+      ticker: sell.ticker,
+      sellAmount: sell.amount,
+      estimatedGain: sell.amount * gainRatio,
+    });
+  });
+
+  return gains;
+};
+
 const parseCsvLine = (line: string) => {
   const values: string[] = [];
   let current = "";
@@ -319,7 +356,7 @@ export const parseFidelityCsv = (text: string) => {
   if (headerIndex === -1) {
     return {
       cashCurrent: 0,
-      positions: [] as { ticker: string; current: number }[],
+      positions: [] as FidelityCsvPosition[],
       pendingActivity: null,
     };
   }
@@ -330,17 +367,18 @@ export const parseFidelityCsv = (text: string) => {
   const symbolIndex = header.indexOf("symbol");
   const descriptionIndex = header.indexOf("description");
   const currentValueIndex = header.indexOf("current value");
+  const costBasisTotalIndex = header.indexOf("cost basis total");
 
   if (symbolIndex === -1 || currentValueIndex === -1) {
     return {
       cashCurrent: 0,
-      positions: [] as { ticker: string; current: number }[],
+      positions: [] as FidelityCsvPosition[],
       pendingActivity: null,
     };
   }
 
-  const positions: { ticker: string; current: number }[] = [];
-  const positionMap = new Map<string, number>();
+  const positions: FidelityCsvPosition[] = [];
+  const positionMap = new Map<string, { current: number; costBasis: number | null }>();
   let cashCurrent = 0;
   let pendingActivity: number | null = null;
 
@@ -358,7 +396,9 @@ export const parseFidelityCsv = (text: string) => {
     const symbol = fields[symbolIndex] ?? "";
     const description = descriptionIndex >= 0 ? fields[descriptionIndex] ?? "" : "";
     const currentValue = fields[currentValueIndex] ?? "";
+    const costBasisValue = costBasisTotalIndex >= 0 ? fields[costBasisTotalIndex] ?? "" : "";
     const current = parseCurrency(currentValue);
+    const costBasis = costBasisTotalIndex >= 0 ? parseCurrency(costBasisValue) : null;
 
     const isPendingActivity =
       symbol.trim().toUpperCase() === "PENDING ACTIVITY" ||
@@ -382,12 +422,20 @@ export const parseFidelityCsv = (text: string) => {
     if (!ticker) {
       continue;
     }
-    const nextValue = (positionMap.get(ticker) ?? 0) + current;
-    positionMap.set(ticker, nextValue);
+    const previous = positionMap.get(ticker);
+    const nextCurrent = (previous?.current ?? 0) + current;
+    const nextCostBasis = costBasis === null
+      ? previous?.costBasis ?? null
+      : (previous?.costBasis ?? 0) + costBasis;
+    positionMap.set(ticker, { current: nextCurrent, costBasis: nextCostBasis });
   }
 
-  for (const [ticker, current] of positionMap.entries()) {
-    positions.push({ ticker, current });
+  for (const [ticker, values] of positionMap.entries()) {
+    positions.push({
+      ticker,
+      current: values.current,
+      costBasis: values.costBasis,
+    });
   }
 
   return { cashCurrent, positions, pendingActivity };
