@@ -1,20 +1,4 @@
 {
-  "name": "portfolio-rebalancer",
-  "version": "1.3.0",
-  "private": true,
-  "engines": {
-    "node": "^22"
-  },
-  "scripts": {
-    "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
-    "start": "next start",
-    "tag": "bash scripts/tag.sh",
-    "lint": "eslint . --fix",
-    "test": "vitest run",
-    "test:coverage": "vitest run --coverage",
-    "test:watch": "vitest"
-  },
   "dependencies": {
     "next": "^16.1.5",
     "react": "^19.2.4",
@@ -33,5 +17,21 @@
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^2.1.4"
-  }
+  },
+  "engines": {
+    "node": "^22"
+  },
+  "name": "portfolio-rebalancer",
+  "private": true,
+  "scripts": {
+    "build": "next build --turbopack",
+    "dev": "next dev --turbopack",
+    "lint": "eslint . --fix",
+    "start": "next start",
+    "tag": "bash scripts/tag.sh",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest"
+  },
+  "version": "1.3.0"
 }
