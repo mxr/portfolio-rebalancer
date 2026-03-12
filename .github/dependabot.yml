@@ -1,38 +1,38 @@
 version: 2
 updates:
-  - package-ecosystem: npm
-    directory: /
-    open-pull-requests-limit: 5
-    schedule:
-      interval: weekly
-    groups:
-      app:
-        patterns:
-          - next
-          - react
-          - react-dom
-      lint-and-types:
-        patterns:
-          - eslint
-          - eslint-*
-          - "@typescript-eslint/*"
-          - typescript
-          - "@types/*"
-      test:
-        patterns:
-          - vitest
-          - "@vitest/*"
-      styling:
-        patterns:
-          - tailwindcss
-          - "@tailwindcss/*"
+- package-ecosystem: npm
+  directory: /
+  open-pull-requests-limit: 5
+  schedule:
+    interval: weekly
+  groups:
+    app:
+      patterns:
+      - next
+      - react
+      - react-dom
+    lint-and-types:
+      patterns:
+      - eslint
+      - eslint-*
+      - '@typescript-eslint/*'
+      - typescript
+      - '@types/*'
+    test:
+      patterns:
+      - vitest
+      - '@vitest/*'
+    styling:
+      patterns:
+      - tailwindcss
+      - '@tailwindcss/*'
 
-  - package-ecosystem: github-actions
-    directory: /
-    open-pull-requests-limit: 5
-    schedule:
-      interval: weekly
-    groups:
-      github-actions:
-        patterns:
-          - "*"
+- package-ecosystem: github-actions
+  directory: /
+  open-pull-requests-limit: 5
+  schedule:
+    interval: weekly
+  groups:
+    github-actions:
+      patterns:
+      - '*'
