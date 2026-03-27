@@ -5,6 +5,7 @@ updates:
   schedule:
     interval: weekly
   ignore:
+  # Don't update this so it doesn't surpass the node engine version
   - dependency-name: '@types/node'
     update-types:
     - version-update:semver-major
