@@ -31,7 +31,6 @@ npm run build
 
 ## Notes
 - All calculations run locally in the browser.
-- Node version: ^22 (see `package.json`).
 
 ## TODO
 - Add validation + inline warnings (targets >100%, negative amounts, missing tickers)
