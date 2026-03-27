@@ -97,6 +97,21 @@ describe("rebalancer helpers", () => {
     expect(summary.sells.map((item) => item.ticker)).toContain("AAA");
   });
 
+  it("sorts multiple buys and sells by descending amount and uses em-dash for empty tickers", () => {
+    const rows = [
+      { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
+      { id: makeRowId(1), ticker: "AAA", current: "900", target: "10" },
+      { id: makeRowId(2), ticker: "BBB", current: "800", target: "5" },
+      { id: makeRowId(3), ticker: "CCC", current: "100", target: "40" },
+      { id: makeRowId(4), ticker: "", current: "50", target: "30" },
+    ];
+    const totals = computeTotals(rows);
+    const summary = computeTradeSummary(rows, totals);
+    expect(summary.sells[0].amount).toBeGreaterThanOrEqual(summary.sells[1]?.amount ?? 0);
+    expect(summary.buys[0].amount).toBeGreaterThanOrEqual(summary.buys[1]?.amount ?? 0);
+    expect(summary.buys.some((b) => b.ticker === "—")).toBe(true);
+  });
+
   it("ignores negligible trade deltas", () => {
     const rows = [
       { id: makeRowId(0), ticker: "CASH", current: "500", target: "" },
@@ -123,6 +138,21 @@ describe("rebalancer helpers", () => {
       { ticker: "AAA", sellAmount: 30, estimatedGain: 6 },
       { ticker: "BBB", sellAmount: 20, estimatedGain: -2 },
     ]);
+  });
+
+  it("skips estimated gains for sells with no position, zero current, or null cost basis", () => {
+    const gains = computeEstimatedSaleGains(
+      [
+        { ticker: "MISSING", amount: 100 },
+        { ticker: "ZERO", amount: 50 },
+        { ticker: "NOBASIS", amount: 75 },
+      ],
+      [
+        { ticker: "ZERO", current: 0, costBasis: 100 },
+        { ticker: "NOBASIS", current: 200, costBasis: null },
+      ],
+    );
+    expect(gains).toEqual([]);
   });
 
   it("sorts by ticker and current", () => {
