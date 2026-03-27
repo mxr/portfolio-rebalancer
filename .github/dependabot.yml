@@ -8,6 +8,11 @@ updates:
   - dependency-name: '@types/node'
     update-types:
     - version-update:semver-major
+  # Keep TypeScript on v5 until typescript-eslint supports v6:
+  # https://github.com/typescript-eslint/typescript-eslint/issues/12123
+  - dependency-name: typescript
+    update-types:
+    - version-update:semver-major
   groups:
     app:
       patterns:
