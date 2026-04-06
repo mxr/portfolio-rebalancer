@@ -23,7 +23,38 @@ on:
     paths: *project_files
 
 jobs:
-  test:
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      project_files: ${{ steps.filter.outputs.project_files }}
+    steps:
+    - name: Checkout
+      uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+
+    - uses: dorny/paths-filter@fbd0ab8f3e69293af611ebaee6363fc25e6d187d # v4.0.1
+      id: filter
+      with:
+        filters: |
+          project_files:
+            - .github/workflows/**
+            - app/**
+            - lib/**
+            - tests/**
+            - scripts/**
+            - '**/*.css'
+            - '**/*.js'
+            - '**/*.jsx'
+            - '**/*.mjs'
+            - '**/*.mts'
+            - '**/*.ts'
+            - '**/*.tsx'
+            - '**/*.json'
+            - package.json
+            - package-lock.json
+
+  test-real:
+    needs: [changes]
+    if: needs.changes.outputs.project_files == 'true'
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -49,3 +80,16 @@ jobs:
       with:
         name: coverage-report
         path: coverage
+
+  test:
+    needs: [changes, test-real]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+    - run: |
+        if [ "${{ needs.changes.outputs.project_files }}" != "true" ]; then
+          exit 0
+        fi
+        if [ "${{ needs.test-real.result }}" != "success" ]; then
+          exit 1
+        fi
