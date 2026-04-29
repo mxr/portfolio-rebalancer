@@ -2,25 +2,8 @@ name: tests
 
 on:
   pull_request:
-    paths: &project_files
-    - .github/workflows/**
-    - app/**
-    - lib/**
-    - tests/**
-    - scripts/**
-    - '**/*.css'
-    - '**/*.js'
-    - '**/*.jsx'
-    - '**/*.mjs'
-    - '**/*.mts'
-    - '**/*.ts'
-    - '**/*.tsx'
-    - '**/*.json'
-    - package.json
-    - package-lock.json
   push:
     branches: [main]
-    paths: *project_files
 
 jobs:
   changes:
