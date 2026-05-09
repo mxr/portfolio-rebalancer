@@ -12,3 +12,8 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --line-width=120]
+- repo: https://github.com/zizmorcore/zizmor-pre-commit
+  rev: v1.24.1
+  hooks:
+  - id: zizmor
+    args: [--no-progress, --fix]
