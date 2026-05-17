@@ -3,7 +3,7 @@
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useRef, useState } from "react";
 import {
-  computeEstimatedSaleGains,
+  computeEstSaleGains,
   computeSortOrder,
   computeTotals,
   computeTradeSummary,
@@ -16,9 +16,9 @@ import {
   isCsvRowCountOk,
   isCsvSizeOk,
   makeRowId,
-  normalizeCurrencyOnBlur,
-  normalizePercentOnBlur,
-  normalizeRows,
+  normCurrencyOnBlur,
+  normPercentOnBlur,
+  normRows,
   parseFidelityCsv,
   parseRows,
   sanitizeCurrencyInput,
@@ -46,9 +46,9 @@ function HomeContent() {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const initialRows = normalizeRows(parseRows(searchParams.get("rows")));
+  const initialRows = normRows(parseRows(searchParams.get("rows")));
   const initialSort = parseSortState(searchParams.get("sort"));
-  const [rows, setRows] = useState<Row[]>(() => normalizeRows(initialRows ?? DEFAULT_ROWS));
+  const [rows, setRows] = useState<Row[]>(() => normRows(initialRows ?? DEFAULT_ROWS));
   const nextRowIndex = useRef(getNextRowIndex(rows));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sortState, setSortState] = useState<SortState>(initialSort ?? { key: "ticker", direction: "asc" });
@@ -84,10 +84,9 @@ function HomeContent() {
     return [cashRow, ...ordered, ...leftovers];
   })();
   const tradeSummary = computeTradeSummary(rows, totals);
-  const estimatedSaleGains =
-    csvPositions && tradeSummary.sells.length > 0 ? computeEstimatedSaleGains(tradeSummary.sells, csvPositions) : [];
-  const estimatedGainByTicker = new Map(estimatedSaleGains.map((item) => [item.ticker, item.estimatedGain]));
-  const totalEstimatedSaleGain = estimatedSaleGains.reduce((sum, item) => sum + item.estimatedGain, 0);
+  const estSaleGains = csvPositions && tradeSummary.sells.length > 0 ? computeEstSaleGains(tradeSummary.sells, csvPositions) : [];
+  const estGainByTicker = new Map(estSaleGains.map((item) => [item.ticker, item.estGain]));
+  const totalEstSaleGain = estSaleGains.reduce((sum, item) => sum + item.estGain, 0);
 
   const handleRowChange = (id: string, key: keyof Row, value: string) => {
     if (key === "current") {
@@ -194,7 +193,7 @@ function HomeContent() {
         });
 
         nextRowIndex.current = nextRows.length;
-        return normalizeRows(nextRows);
+        return normRows(nextRows);
       });
     };
 
@@ -204,12 +203,12 @@ function HomeContent() {
 
   useEffect(
     function syncUrlState() {
-      const encodedRows = serializeRows(sortedRows, totals.cashTarget);
+      const encoded = serializeRows(sortedRows, totals.cashTarget);
       const sortValue = `${sortState.key}:${sortState.direction}`;
       const nextSort = rows.length > 1 ? sortValue : "";
       const nextParams = new URLSearchParams(searchParams);
-      if (encodedRows) {
-        nextParams.set("rows", encodedRows);
+      if (encoded) {
+        nextParams.set("rows", encoded);
       } else {
         nextParams.delete("rows");
       }
@@ -219,9 +218,9 @@ function HomeContent() {
         nextParams.delete("sort");
       }
 
-      const currentEncoded = searchParams.get("rows") ?? "";
+      const currentRows = searchParams.get("rows") ?? "";
       const currentSort = searchParams.get("sort") ?? "";
-      if (currentEncoded !== encodedRows || currentSort !== nextSort) {
+      if (currentRows !== encoded || currentSort !== nextSort) {
         const query = nextParams.toString();
         router.replace(query ? `${pathname}?${query}` : pathname, {
           scroll: false,
@@ -300,10 +299,10 @@ function HomeContent() {
               {sortedRows.map((row, index) => {
                 const isCash = row.ticker.toUpperCase() === "CASH";
                 const isLastRow = index === sortedRows.length - 1;
-                const currentValue = toNumber(row.current);
-                const targetValue = isCash ? totals.cashTarget : toNumber(row.target);
-                const desiredValue = totals.totalCurrent * (targetValue / 100);
-                const delta = desiredValue - currentValue;
+                const current = toNumber(row.current);
+                const target = isCash ? totals.cashTarget : toNumber(row.target);
+                const desired = totals.totalCurrent * (target / 100);
+                const delta = desired - current;
                 const actionLabel = delta >= 0 ? "Buy" : "Sell";
 
                 return (
@@ -368,7 +367,7 @@ function HomeContent() {
                           })()
                         }
                         onKeyDown={(event) => handleTabAddRow(event, isLastRow && isCash)}
-                        onBlur={(event) => handleRowChange(row.id, "current", normalizeCurrencyOnBlur(event.target.value))}
+                        onBlur={(event) => handleRowChange(row.id, "current", normCurrencyOnBlur(event.target.value))}
                         placeholder="0.00"
                         className={`h-12 w-full appearance-none rounded-xl border pl-7 pr-3 text-sm font-medium outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60 ${
                           isCash ? "border-[#e6d7c7] bg-[#fff7ed] text-[#1d1b18]" : "border-[#e6d7c7] bg-[#fefbf7] text-[#1d1b18]"
@@ -410,7 +409,7 @@ function HomeContent() {
                             })()
                           }
                           onKeyDown={(event) => handleTabAddRow(event, isLastRow)}
-                          onBlur={(event) => handleRowChange(row.id, "target", normalizePercentOnBlur(event.target.value))}
+                          onBlur={(event) => handleRowChange(row.id, "target", normPercentOnBlur(event.target.value))}
                           placeholder="0"
                           className="h-12 w-full appearance-none rounded-xl border border-[#e6d7c7] bg-[#fefbf7] px-3 pr-8 text-sm font-medium text-[#1d1b18] outline-none transition focus:border-[#c9a888] focus:ring-2 focus:ring-[#edc9a6]/60"
                         />
@@ -503,9 +502,7 @@ function HomeContent() {
                       <div className="truncate sm:text-right">
                         <p>{formatCurrency(item.amount)}</p>
                         {csvPositions ? (
-                          <p className="text-xs text-[#7a6a5d]">
-                            Est. gain/loss: {formatCurrency(estimatedGainByTicker.get(item.ticker) ?? 0)}
-                          </p>
+                          <p className="text-xs text-[#7a6a5d]">Est. gain/loss: {formatCurrency(estGainByTicker.get(item.ticker) ?? 0)}</p>
                         ) : null}
                       </div>
                     </div>
@@ -513,7 +510,7 @@ function HomeContent() {
                   {csvPositions ? (
                     <div className="flex w-full min-w-0 flex-col gap-1 rounded-xl border border-[#eadacc] bg-white/90 px-3 py-2 text-sm text-[#3f372f] sm:flex-row sm:items-center sm:justify-between">
                       <span className="font-semibold">Total estimated gain/loss</span>
-                      <span className="truncate sm:text-right">{formatCurrency(totalEstimatedSaleGain)}</span>
+                      <span className="truncate sm:text-right">{formatCurrency(totalEstSaleGain)}</span>
                     </div>
                   ) : null}
                 </div>

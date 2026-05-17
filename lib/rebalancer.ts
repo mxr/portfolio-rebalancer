@@ -28,10 +28,10 @@ export type FidelityCsvPosition = {
   costBasis: number | null;
 };
 
-export type EstimatedSaleGain = {
+export type EstSaleGain = {
   ticker: string;
   sellAmount: number;
-  estimatedGain: number;
+  estGain: number;
 };
 
 export const makeRowId = (index: number) => `row-${index}`;
@@ -71,38 +71,38 @@ export const sanitizeCurrencyInput = (value: string) => sanitizeDecimalInput(val
 
 export const sanitizeTargetPercentInput = (value: string) => sanitizeDecimalInput(value);
 
-const normalizeDecimalOnBlur = (value: string, sanitize: (next: string) => string, padSingleDecimalPlace: boolean) => {
-  let normalized = sanitize(value);
-  if (!normalized || normalized === ".") {
+const normDecimalOnBlur = (value: string, sanitize: (next: string) => string, padSingleDecimalPlace: boolean) => {
+  let norm = sanitize(value);
+  if (!norm || norm === ".") {
     return "";
   }
-  if (normalized.startsWith(".")) {
-    normalized = `0${normalized}`;
+  if (norm.startsWith(".")) {
+    norm = `0${norm}`;
   }
-  if (normalized.endsWith(".")) {
-    normalized = normalized.slice(0, -1);
+  if (norm.endsWith(".")) {
+    norm = norm.slice(0, -1);
   }
-  const [wholeRaw = "", fractionPart] = normalized.split(".");
+  const [wholeRaw = "", fractionPart] = norm.split(".");
   const strippedWhole = wholeRaw.replace(/^0+(?=\d)/, "");
-  normalized = fractionPart !== undefined ? `${strippedWhole}.${fractionPart}` : strippedWhole;
-  if (/^\d+\.00$/.test(normalized)) {
-    return normalized.slice(0, -3);
+  norm = fractionPart !== undefined ? `${strippedWhole}.${fractionPart}` : strippedWhole;
+  if (/^\d+\.00$/.test(norm)) {
+    return norm.slice(0, -3);
   }
-  if (padSingleDecimalPlace && /^\d+\.\d$/.test(normalized)) {
-    return `${normalized}0`;
+  if (padSingleDecimalPlace && /^\d+\.\d$/.test(norm)) {
+    return `${norm}0`;
   }
-  return normalized;
+  return norm;
 };
 
-export const normalizeCurrencyOnBlur = (value: string) => normalizeDecimalOnBlur(value, sanitizeCurrencyInput, true);
+export const normCurrencyOnBlur = (value: string) => normDecimalOnBlur(value, sanitizeCurrencyInput, true);
 
-export const normalizePercentOnBlur = (value: string) => {
-  return normalizeDecimalOnBlur(value, sanitizeTargetPercentInput, false);
+export const normPercentOnBlur = (value: string) => {
+  return normDecimalOnBlur(value, sanitizeTargetPercentInput, false);
 };
 
 export const parseCurrency = (value: string) => {
-  const normalized = value.replace(/[$,]/g, "").trim();
-  const parsed = Number(normalized);
+  const norm = value.replace(/[$,]/g, "").trim();
+  const parsed = Number(norm);
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
@@ -148,8 +148,8 @@ export const serializeRows = (rows: Row[], cashTarget: number) =>
   rows
     .filter((row) => row.ticker || row.current || row.target)
     .map((row, index) => {
-      const targetValue = index === 0 ? cashTarget.toFixed(2) : row.target;
-      return [row.ticker, row.current, targetValue].join("|");
+      const target = index === 0 ? cashTarget.toFixed(2) : row.target;
+      return [row.ticker, row.current, target].join("|");
     })
     .join(";");
 
@@ -172,7 +172,7 @@ export const parseRows = (value: string | null) => {
   return rows.length > 0 ? rows : null;
 };
 
-export const normalizeRows = (rows: Row[] | null): Row[] => {
+export const normRows = (rows: Row[] | null): Row[] => {
   if (!rows || rows.length === 0) {
     // Unreachable in normal usage because the UI always maintains a CASH row.
     return [{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }];
@@ -186,8 +186,8 @@ export const normalizeRows = (rows: Row[] | null): Row[] => {
     current: cashCandidate?.current ?? "",
     target: "",
   };
-  const filteredRest = rest.filter((row) => row.ticker.toUpperCase() !== "CASH");
-  return [cashRow, ...filteredRest];
+  const restRows = rest.filter((row) => row.ticker.toUpperCase() !== "CASH");
+  return [cashRow, ...restRows];
 };
 
 export const computeTotals = (rows: Row[]): Totals => {
@@ -201,9 +201,9 @@ export const computeSortOrder = (rows: Row[], totals: Totals, key: SortKey, dire
   const rest = rows.slice(1);
   const getTargetValue = (row: Row) => toNumber(row.target);
   const getAmountValue = (row: Row) => {
-    const currentValue = toNumber(row.current);
-    const desiredValue = totals.totalCurrent * (getTargetValue(row) / 100);
-    return Math.abs(desiredValue - currentValue);
+    const current = toNumber(row.current);
+    const desired = totals.totalCurrent * (getTargetValue(row) / 100);
+    return Math.abs(desired - current);
   };
 
   const compare = (a: Row, b: Row) => {
@@ -238,10 +238,10 @@ export const computeTradeSummary = (rows: Row[], totals: Totals): TradeSummary =
   const sells: { ticker: string; amount: number }[] = [];
 
   rows.slice(1).forEach((row) => {
-    const currentValue = toNumber(row.current);
-    const targetValue = toNumber(row.target);
-    const desiredValue = totals.totalCurrent * (targetValue / 100);
-    const delta = desiredValue - currentValue;
+    const current = toNumber(row.current);
+    const target = toNumber(row.target);
+    const desired = totals.totalCurrent * (target / 100);
+    const delta = desired - current;
     if (Math.abs(delta) < 0.01) {
       return;
     }
@@ -258,9 +258,9 @@ export const computeTradeSummary = (rows: Row[], totals: Totals): TradeSummary =
   return { buys, sells };
 };
 
-export const computeEstimatedSaleGains = (sells: { ticker: string; amount: number }[], csvPositions: FidelityCsvPosition[]) => {
+export const computeEstSaleGains = (sells: { ticker: string; amount: number }[], csvPositions: FidelityCsvPosition[]) => {
   const positionByTicker = new Map(csvPositions.map((position) => [position.ticker.toUpperCase(), position]));
-  const gains: EstimatedSaleGain[] = [];
+  const gains: EstSaleGain[] = [];
 
   sells.forEach((sell) => {
     const position = positionByTicker.get(sell.ticker.toUpperCase());
@@ -271,7 +271,7 @@ export const computeEstimatedSaleGains = (sells: { ticker: string; amount: numbe
     gains.push({
       ticker: sell.ticker,
       sellAmount: sell.amount,
-      estimatedGain: sell.amount * gainRatio,
+      estGain: sell.amount * gainRatio,
     });
   });
 
@@ -323,11 +323,11 @@ export const parseFidelityCsv = (text: string) => {
 
   const header = parseCsvLine(lines[headerIndex]).map((value) => value.toLowerCase());
   const symbolIndex = header.indexOf("symbol");
-  const descriptionIndex = header.indexOf("description");
-  const currentValueIndex = header.indexOf("current value");
-  const costBasisTotalIndex = header.indexOf("cost basis total");
+  const descIndex = header.indexOf("description");
+  const currentIndex = header.indexOf("current value");
+  const costBasisIndex = header.indexOf("cost basis total");
 
-  if (symbolIndex === -1 || currentValueIndex === -1) {
+  if (symbolIndex === -1 || currentIndex === -1) {
     return {
       cashCurrent: 0,
       positions: [] as FidelityCsvPosition[],
@@ -348,23 +348,18 @@ export const parseFidelityCsv = (text: string) => {
 
     const fields = parseCsvLine(line);
     const symbol = fields[symbolIndex] ?? "";
-    const description = descriptionIndex >= 0 ? (fields[descriptionIndex] ?? "") : "";
-    const currentValue = fields[currentValueIndex] ?? "";
-    const costBasisValue = costBasisTotalIndex >= 0 ? (fields[costBasisTotalIndex] ?? "") : "";
-    const current = parseCurrency(currentValue);
-    const costBasis = costBasisTotalIndex >= 0 ? parseCurrency(costBasisValue) : null;
+    const desc = descIndex >= 0 ? (fields[descIndex] ?? "") : "";
+    const currentRaw = fields[currentIndex] ?? "";
+    const costBasisRaw = costBasisIndex >= 0 ? (fields[costBasisIndex] ?? "") : "";
+    const current = parseCurrency(currentRaw);
+    const costBasis = costBasisIndex >= 0 ? parseCurrency(costBasisRaw) : null;
 
-    const isPendingActivity = symbol.trim().toUpperCase() === "PENDING ACTIVITY" || /pending activity/i.test(description);
-    const isCash =
-      isPendingActivity ||
-      symbol.trim().length === 0 ||
-      symbol.includes("**") ||
-      /money market/i.test(description) ||
-      /cash/i.test(description);
+    const isPending = symbol.trim().toUpperCase() === "PENDING ACTIVITY" || /pending activity/i.test(desc);
+    const isCash = isPending || symbol.trim().length === 0 || symbol.includes("**") || /money market/i.test(desc) || /cash/i.test(desc);
 
     if (isCash) {
       cashCurrent += current;
-      if (isPendingActivity) {
+      if (isPending) {
         pendingActivity = (pendingActivity ?? 0) + current;
       }
       continue;
