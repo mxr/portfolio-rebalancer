@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   arraysEqual,
-  computeEstimatedSaleGains,
+  computeEstSaleGains,
   computeSortOrder,
   computeTotals,
   computeTradeSummary,
@@ -14,9 +14,9 @@ import {
   isCsvRowCountOk,
   isCsvSizeOk,
   makeRowId,
-  normalizeCurrencyOnBlur,
-  normalizePercentOnBlur,
-  normalizeRows,
+  normCurrencyOnBlur,
+  normPercentOnBlur,
+  normRows,
   parseCurrency,
   parseFidelityCsv,
   parseRows,
@@ -34,15 +34,15 @@ describe("rebalancer helpers", () => {
       { id: makeRowId(2), ticker: "CASH", current: "25", target: "0" },
       { id: makeRowId(3), ticker: "CASH", current: "30", target: "0" },
     ];
-    const normalized = normalizeRows(rows);
-    expect(normalized[0].ticker).toBe("CASH");
-    expect(normalized[0].current).toBe("25");
-    expect(normalized.filter((row) => row.ticker === "CASH")).toHaveLength(1);
+    const norm = normRows(rows);
+    expect(norm[0].ticker).toBe("CASH");
+    expect(norm[0].current).toBe("25");
+    expect(norm.filter((row) => row.ticker === "CASH")).toHaveLength(1);
   });
 
   it("returns a default CASH row when input is empty", () => {
-    const normalized = normalizeRows(null);
-    expect(normalized).toEqual([{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }]);
+    const norm = normRows(null);
+    expect(norm).toEqual([{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }]);
   });
 
   it("serializes and parses rows with cash target", () => {
@@ -122,7 +122,7 @@ describe("rebalancer helpers", () => {
   });
 
   it("computes estimated gains from sell trades using csv cost basis", () => {
-    const gains = computeEstimatedSaleGains(
+    const gains = computeEstSaleGains(
       [
         { ticker: "AAA", amount: 30 },
         { ticker: "BBB", amount: 20 },
@@ -133,13 +133,13 @@ describe("rebalancer helpers", () => {
       ],
     );
     expect(gains).toEqual([
-      { ticker: "AAA", sellAmount: 30, estimatedGain: 6 },
-      { ticker: "BBB", sellAmount: 20, estimatedGain: -2 },
+      { ticker: "AAA", sellAmount: 30, estGain: 6 },
+      { ticker: "BBB", sellAmount: 20, estGain: -2 },
     ]);
   });
 
   it("skips estimated gains for sells with no position, zero current, or null cost basis", () => {
-    const gains = computeEstimatedSaleGains(
+    const gains = computeEstSaleGains(
       [
         { ticker: "MISSING", amount: 100 },
         { ticker: "ZERO", amount: 50 },
@@ -214,15 +214,15 @@ describe("rebalancer helpers", () => {
   });
 
   it("normalizes currency on blur", () => {
-    expect(normalizeCurrencyOnBlur("12.3")).toBe("12.30");
-    expect(normalizeCurrencyOnBlur("12.00")).toBe("12");
-    expect(normalizeCurrencyOnBlur(".5")).toBe("0.50");
-    expect(normalizeCurrencyOnBlur("10.")).toBe("10");
-    expect(normalizeCurrencyOnBlur("0012.30")).toBe("12.30");
-    expect(normalizeCurrencyOnBlur("00012")).toBe("12");
-    expect(normalizeCurrencyOnBlur("000.50")).toBe("0.50");
-    expect(normalizeCurrencyOnBlur("")).toBe("");
-    expect(normalizeCurrencyOnBlur(".")).toBe("");
+    expect(normCurrencyOnBlur("12.3")).toBe("12.30");
+    expect(normCurrencyOnBlur("12.00")).toBe("12");
+    expect(normCurrencyOnBlur(".5")).toBe("0.50");
+    expect(normCurrencyOnBlur("10.")).toBe("10");
+    expect(normCurrencyOnBlur("0012.30")).toBe("12.30");
+    expect(normCurrencyOnBlur("00012")).toBe("12");
+    expect(normCurrencyOnBlur("000.50")).toBe("0.50");
+    expect(normCurrencyOnBlur("")).toBe("");
+    expect(normCurrencyOnBlur(".")).toBe("");
   });
 
   it("sanitizes target percent input to max two decimals", () => {
@@ -234,15 +234,15 @@ describe("rebalancer helpers", () => {
   });
 
   it("normalizes target percent on blur", () => {
-    expect(normalizePercentOnBlur("12.00")).toBe("12");
-    expect(normalizePercentOnBlur("12.30")).toBe("12.30");
-    expect(normalizePercentOnBlur(".5")).toBe("0.5");
-    expect(normalizePercentOnBlur("10.")).toBe("10");
-    expect(normalizePercentOnBlur("0012.30")).toBe("12.30");
-    expect(normalizePercentOnBlur("00012")).toBe("12");
-    expect(normalizePercentOnBlur("000.5")).toBe("0.5");
-    expect(normalizePercentOnBlur("")).toBe("");
-    expect(normalizePercentOnBlur(".")).toBe("");
+    expect(normPercentOnBlur("12.00")).toBe("12");
+    expect(normPercentOnBlur("12.30")).toBe("12.30");
+    expect(normPercentOnBlur(".5")).toBe("0.5");
+    expect(normPercentOnBlur("10.")).toBe("10");
+    expect(normPercentOnBlur("0012.30")).toBe("12.30");
+    expect(normPercentOnBlur("00012")).toBe("12");
+    expect(normPercentOnBlur("000.5")).toBe("0.5");
+    expect(normPercentOnBlur("")).toBe("");
+    expect(normPercentOnBlur(".")).toBe("");
   });
 
   it("throws when sort key is invalid at runtime", () => {
