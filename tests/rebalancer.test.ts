@@ -1,30 +1,30 @@
 import { describe, expect, it } from "vitest";
 import {
   arraysEqual,
-  createRow,
-  computeSortOrder,
   computeEstimatedSaleGains,
+  computeSortOrder,
   computeTotals,
   computeTradeSummary,
+  createRow,
   DEFAULT_ROWS,
-  formatPercent,
   formatCurrency,
+  formatPercent,
+  getNextRowIndex,
   isCsvFile,
   isCsvRowCountOk,
   isCsvSizeOk,
   makeRowId,
   normalizeCurrencyOnBlur,
-  normalizeRows,
   normalizePercentOnBlur,
+  normalizeRows,
+  parseCurrency,
   parseFidelityCsv,
   parseRows,
-  parseCurrency,
   sanitizeCurrencyInput,
   sanitizeTargetPercentInput,
   sanitizeTickerInput,
   serializeRows,
   toNumber,
-  getNextRowIndex,
 } from "../lib/rebalancer";
 
 describe("rebalancer helpers", () => {
@@ -42,9 +42,7 @@ describe("rebalancer helpers", () => {
 
   it("returns a default CASH row when input is empty", () => {
     const normalized = normalizeRows(null);
-    expect(normalized).toEqual([
-      { id: makeRowId(0), ticker: "CASH", current: "", target: "" },
-    ]);
+    expect(normalized).toEqual([{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }]);
   });
 
   it("serializes and parses rows with cash target", () => {
@@ -254,14 +252,7 @@ describe("rebalancer helpers", () => {
       { id: makeRowId(2), ticker: "BBB", current: "20", target: "50" },
     ];
     const totals = computeTotals(rows);
-    expect(() =>
-      computeSortOrder(
-        rows,
-        totals,
-        "invalid" as unknown as "ticker",
-        "asc",
-      ),
-    ).toThrow("Unreachable");
+    expect(() => computeSortOrder(rows, totals, "invalid" as unknown as "ticker", "asc")).toThrow("Unreachable");
   });
 
   it("sanitizes parsed rows from URL state", () => {
@@ -317,10 +308,7 @@ describe("rebalancer helpers", () => {
   });
 
   it("handles Fidelity CSV without current value column", () => {
-    const csv = [
-      "Account Number,Account Name,Symbol,Description",
-      "123,Account,AAA,ALPHA INC",
-    ].join("\n");
+    const csv = ["Account Number,Account Name,Symbol,Description", "123,Account,AAA,ALPHA INC"].join("\n");
     const parsed = parseFidelityCsv(csv);
     expect(parsed.positions).toEqual([]);
     expect(parsed.pendingActivity).toBeNull();
@@ -331,7 +319,7 @@ describe("rebalancer helpers", () => {
       "Account Number,Account Name,Symbol,Description,Quantity,Last Price,Last Price Change,Current Value,Today's Gain/Loss Dollar,Today's Gain/Loss Percent,Total Gain/Loss Dollar,Total Gain/Loss Percent,Percent Of Account,Cost Basis Total,Average Cost Basis,Type",
       "123,Account,AAA,ALPHA INC,10,$10.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
       "123,Account,FDRXX**,HELD IN MONEY MARKET,,,,$250.00,,,,,5.00%,,,Cash,",
-      "\"Date downloaded Feb-06-2026 9:00 a.m ET\"",
+      '"Date downloaded Feb-06-2026 9:00 a.m ET"',
     ].join("\n");
 
     const parsed = parseFidelityCsv(csv);
@@ -342,11 +330,11 @@ describe("rebalancer helpers", () => {
     const csv = [
       "Account Number,Account Name,Symbol,Description,Quantity,Last Price,Last Price Change,Current Value,Today's Gain/Loss Dollar,Today's Gain/Loss Percent,Total Gain/Loss Dollar,Total Gain/Loss Percent,Percent Of Account,Cost Basis Total,Average Cost Basis,Type",
       "123,Account,AAA,ALPHA INC,10,$10.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
-      "123,Account,ACME,\"ACME, INC\",5,$20.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
-      "123,Account,QUOT,\"ACME \"\"HOLDINGS\"\"\",5,$20.00,+$0.10,$150.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,",
+      '123,Account,ACME,"ACME, INC",5,$20.00,+$0.10,$100.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,',
+      '123,Account,QUOT,"ACME ""HOLDINGS""",5,$20.00,+$0.10,$150.00,+$1.00,+1.00%,+$5.00,+5.00%,10.00%,$95.00,$9.50,Cash,',
       "123,Account,PENDING ACTIVITY,PENDING ACTIVITY,,,,$42.00,,,,,0.00%,,,Cash,",
       "123,Account,FDRXX**,HELD IN MONEY MARKET,,,,$250.00,,,,,5.00%,,,Cash,",
-      "\"Date downloaded Jan-27-2026 2:05 p.m ET\"",
+      '"Date downloaded Jan-27-2026 2:05 p.m ET"',
     ].join("\n");
 
     const parsed = parseFidelityCsv(csv);
@@ -363,7 +351,7 @@ describe("rebalancer helpers", () => {
     const csv = [
       "Account Number,Account Name,Symbol,Description,Current Value",
       "123,Account,@@@,ALPHA INC,$123.00",
-      "\"Date downloaded Jan-27-2026 2:05 p.m ET\"",
+      '"Date downloaded Jan-27-2026 2:05 p.m ET"',
     ].join("\n");
 
     const parsed = parseFidelityCsv(csv);

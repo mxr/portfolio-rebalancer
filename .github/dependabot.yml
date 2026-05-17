@@ -9,11 +9,6 @@ updates:
   - dependency-name: '@types/node'
     update-types:
     - version-update:semver-major
-  # Keep ESLint on v9 until eslint-config-next is compatible with v10:
-  # https://github.com/vercel/next.js/issues/89764
-  - dependency-name: eslint
-    update-types:
-    - version-update:semver-major
   groups:
     app:
       patterns:
@@ -22,9 +17,7 @@ updates:
       - react-dom
     lint-and-types:
       patterns:
-      - eslint
-      - eslint-*
-      - '@typescript-eslint/*'
+      - '@biomejs/biome'
       - typescript
       - '@types/*'
     test:
