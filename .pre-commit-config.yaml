@@ -12,6 +12,12 @@ repos:
   hooks:
   - id: pretty-format-yaml
     args: [--autofix, --line-width=120]
+- repo: https://github.com/biomejs/pre-commit
+  rev: v2.4.15
+  hooks:
+  - id: biome-check
+    additional_dependencies:
+    - '@biomejs/biome@2.4.15'
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
   rev: a4727cbbcd26d7098e96b9cb738169b59711ae51  # frozen: v1.24.1
   hooks:

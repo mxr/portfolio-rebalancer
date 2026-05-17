@@ -55,8 +55,7 @@ export const toNumber = (value: string) => {
   return Number.isFinite(parsed) ? parsed : 0;
 };
 
-export const sanitizeTickerInput = (value: string) =>
-  value.toUpperCase().replace(/[^A-Z0-9]/g, "");
+export const sanitizeTickerInput = (value: string) => value.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
 const sanitizeDecimalInput = (value: string) => {
   const numeric = value.replace(/[^0-9.]/g, "");
@@ -68,17 +67,11 @@ const sanitizeDecimalInput = (value: string) => {
   return whole;
 };
 
-export const sanitizeCurrencyInput = (value: string) =>
-  sanitizeDecimalInput(value);
+export const sanitizeCurrencyInput = (value: string) => sanitizeDecimalInput(value);
 
-export const sanitizeTargetPercentInput = (value: string) =>
-  sanitizeDecimalInput(value);
+export const sanitizeTargetPercentInput = (value: string) => sanitizeDecimalInput(value);
 
-const normalizeDecimalOnBlur = (
-  value: string,
-  sanitize: (next: string) => string,
-  padSingleDecimalPlace: boolean,
-) => {
+const normalizeDecimalOnBlur = (value: string, sanitize: (next: string) => string, padSingleDecimalPlace: boolean) => {
   let normalized = sanitize(value);
   if (!normalized || normalized === ".") {
     return "";
@@ -91,9 +84,7 @@ const normalizeDecimalOnBlur = (
   }
   const [wholeRaw = "", fractionPart] = normalized.split(".");
   const strippedWhole = wholeRaw.replace(/^0+(?=\d)/, "");
-  normalized = fractionPart !== undefined
-    ? `${strippedWhole}.${fractionPart}`
-    : strippedWhole;
+  normalized = fractionPart !== undefined ? `${strippedWhole}.${fractionPart}` : strippedWhole;
   if (/^\d+\.00$/.test(normalized)) {
     return normalized.slice(0, -3);
   }
@@ -103,8 +94,7 @@ const normalizeDecimalOnBlur = (
   return normalized;
 };
 
-export const normalizeCurrencyOnBlur = (value: string) =>
-  normalizeDecimalOnBlur(value, sanitizeCurrencyInput, true);
+export const normalizeCurrencyOnBlur = (value: string) => normalizeDecimalOnBlur(value, sanitizeCurrencyInput, true);
 
 export const normalizePercentOnBlur = (value: string) => {
   return normalizeDecimalOnBlur(value, sanitizeTargetPercentInput, false);
@@ -136,14 +126,11 @@ export const arraysEqual = (a: string[], b: string[]) => {
   return a.every((value, index) => value === b[index]);
 };
 
-export const isCsvFile = (name: string, type: string) =>
-  type === "text/csv" || name.toLowerCase().endsWith(".csv");
+export const isCsvFile = (name: string, type: string) => type === "text/csv" || name.toLowerCase().endsWith(".csv");
 
-export const isCsvSizeOk = (size: number, maxBytes = 2 * 1024 * 1024) =>
-  size <= maxBytes;
+export const isCsvSizeOk = (size: number, maxBytes = 2 * 1024 * 1024) => size <= maxBytes;
 
-export const isCsvRowCountOk = (text: string, maxRows = 5000) =>
-  text.split(/\r?\n/).filter(Boolean).length <= maxRows;
+export const isCsvRowCountOk = (text: string, maxRows = 5000) => text.split(/\r?\n/).filter(Boolean).length <= maxRows;
 
 export const getNextRowIndex = (rows: Row[]) => {
   const maxIndex = rows.reduce((max, row) => {
@@ -161,8 +148,7 @@ export const serializeRows = (rows: Row[], cashTarget: number) =>
   rows
     .filter((row) => row.ticker || row.current || row.target)
     .map((row, index) => {
-      const targetValue =
-        index === 0 ? cashTarget.toFixed(2) : row.target;
+      const targetValue = index === 0 ? cashTarget.toFixed(2) : row.target;
       return [row.ticker, row.current, targetValue].join("|");
     })
     .join(";");
@@ -192,9 +178,7 @@ export const normalizeRows = (rows: Row[] | null): Row[] => {
     return [{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }];
   }
 
-  const cashCandidate = rows.find(
-    (row) => row.ticker.toUpperCase() === "CASH",
-  );
+  const cashCandidate = rows.find((row) => row.ticker.toUpperCase() === "CASH");
   const [first, ...rest] = rows;
   const cashRow = {
     id: cashCandidate?.id ?? first.id ?? makeRowId(0),
@@ -202,37 +186,23 @@ export const normalizeRows = (rows: Row[] | null): Row[] => {
     current: cashCandidate?.current ?? "",
     target: "",
   };
-  const filteredRest = rest.filter(
-    (row) => row.ticker.toUpperCase() !== "CASH",
-  );
+  const filteredRest = rest.filter((row) => row.ticker.toUpperCase() !== "CASH");
   return [cashRow, ...filteredRest];
 };
 
 export const computeTotals = (rows: Row[]): Totals => {
-  const totalCurrent = rows.reduce(
-    (sum, row) => sum + toNumber(row.current),
-    0,
-  );
-  const nonCashTarget = rows.slice(1).reduce(
-    (sum, row) => sum + toNumber(row.target),
-    0,
-  );
+  const totalCurrent = rows.reduce((sum, row) => sum + toNumber(row.current), 0);
+  const nonCashTarget = rows.slice(1).reduce((sum, row) => sum + toNumber(row.target), 0);
   const cashTarget = Math.max(0, 100 - nonCashTarget);
   return { totalCurrent, nonCashTarget, cashTarget };
 };
 
-export const computeSortOrder = (
-  rows: Row[],
-  totals: Totals,
-  key: SortKey,
-  direction: "asc" | "desc",
-) => {
+export const computeSortOrder = (rows: Row[], totals: Totals, key: SortKey, direction: "asc" | "desc") => {
   const rest = rows.slice(1);
   const getTargetValue = (row: Row) => toNumber(row.target);
   const getAmountValue = (row: Row) => {
     const currentValue = toNumber(row.current);
-    const desiredValue =
-      totals.totalCurrent * (getTargetValue(row) / 100);
+    const desiredValue = totals.totalCurrent * (getTargetValue(row) / 100);
     return Math.abs(desiredValue - currentValue);
   };
 
@@ -253,7 +223,7 @@ export const computeSortOrder = (
         break;
       default: {
         key satisfies never;
-        throw new Error('Unreachable');
+        throw new Error("Unreachable");
       }
     }
 
@@ -263,10 +233,7 @@ export const computeSortOrder = (
   return [...rest].sort(compare).map((row) => row.id);
 };
 
-export const computeTradeSummary = (
-  rows: Row[],
-  totals: Totals,
-): TradeSummary => {
+export const computeTradeSummary = (rows: Row[], totals: Totals): TradeSummary => {
   const buys: { ticker: string; amount: number }[] = [];
   const sells: { ticker: string; amount: number }[] = [];
 
@@ -291,13 +258,8 @@ export const computeTradeSummary = (
   return { buys, sells };
 };
 
-export const computeEstimatedSaleGains = (
-  sells: { ticker: string; amount: number }[],
-  csvPositions: FidelityCsvPosition[],
-) => {
-  const positionByTicker = new Map(
-    csvPositions.map((position) => [position.ticker.toUpperCase(), position]),
-  );
+export const computeEstimatedSaleGains = (sells: { ticker: string; amount: number }[], csvPositions: FidelityCsvPosition[]) => {
+  const positionByTicker = new Map(csvPositions.map((position) => [position.ticker.toUpperCase(), position]));
   const gains: EstimatedSaleGain[] = [];
 
   sells.forEach((sell) => {
@@ -350,9 +312,7 @@ export const parseFidelityCsv = (text: string) => {
     .map((line) => line.trim())
     .filter((line) => line.length > 0);
 
-  const headerIndex = lines.findIndex((line) =>
-    line.toLowerCase().startsWith("account number,"),
-  );
+  const headerIndex = lines.findIndex((line) => line.toLowerCase().startsWith("account number,"));
   if (headerIndex === -1) {
     return {
       cashCurrent: 0,
@@ -361,9 +321,7 @@ export const parseFidelityCsv = (text: string) => {
     };
   }
 
-  const header = parseCsvLine(lines[headerIndex]).map((value) =>
-    value.toLowerCase(),
-  );
+  const header = parseCsvLine(lines[headerIndex]).map((value) => value.toLowerCase());
   const symbolIndex = header.indexOf("symbol");
   const descriptionIndex = header.indexOf("description");
   const currentValueIndex = header.indexOf("current value");
@@ -384,25 +342,19 @@ export const parseFidelityCsv = (text: string) => {
 
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
     const line = lines[i];
-    if (
-      line.startsWith('"The data and information') ||
-      line.startsWith('"Brokerage services') ||
-      line.startsWith('"Date downloaded')
-    ) {
+    if (line.startsWith('"The data and information') || line.startsWith('"Brokerage services') || line.startsWith('"Date downloaded')) {
       break;
     }
 
     const fields = parseCsvLine(line);
     const symbol = fields[symbolIndex] ?? "";
-    const description = descriptionIndex >= 0 ? fields[descriptionIndex] ?? "" : "";
+    const description = descriptionIndex >= 0 ? (fields[descriptionIndex] ?? "") : "";
     const currentValue = fields[currentValueIndex] ?? "";
-    const costBasisValue = costBasisTotalIndex >= 0 ? fields[costBasisTotalIndex] ?? "" : "";
+    const costBasisValue = costBasisTotalIndex >= 0 ? (fields[costBasisTotalIndex] ?? "") : "";
     const current = parseCurrency(currentValue);
     const costBasis = costBasisTotalIndex >= 0 ? parseCurrency(costBasisValue) : null;
 
-    const isPendingActivity =
-      symbol.trim().toUpperCase() === "PENDING ACTIVITY" ||
-      /pending activity/i.test(description);
+    const isPendingActivity = symbol.trim().toUpperCase() === "PENDING ACTIVITY" || /pending activity/i.test(description);
     const isCash =
       isPendingActivity ||
       symbol.trim().length === 0 ||
@@ -424,9 +376,7 @@ export const parseFidelityCsv = (text: string) => {
     }
     const previous = positionMap.get(ticker);
     const nextCurrent = (previous?.current ?? 0) + current;
-    const nextCostBasis = costBasis === null
-      ? previous?.costBasis ?? null
-      : (previous?.costBasis ?? 0) + costBasis;
+    const nextCostBasis = costBasis === null ? (previous?.costBasis ?? null) : (previous?.costBasis ?? 0) + costBasis;
     positionMap.set(ticker, { current: nextCurrent, costBasis: nextCostBasis });
   }
 
