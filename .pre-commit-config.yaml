@@ -16,10 +16,6 @@ repos:
   rev: v2.4.15
   hooks:
   - id: biome-check
-- repo: https://github.com/pre-commit/sync-pre-commit-deps
-  rev: v0.0.3
-  hooks:
-  - id: sync-pre-commit-deps
 - repo: https://github.com/zizmorcore/zizmor-pre-commit
   rev: a4727cbbcd26d7098e96b9cb738169b59711ae51  # frozen: v1.24.1
   hooks:
