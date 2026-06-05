@@ -6,7 +6,6 @@
     "react-dom": "^19.2.6"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.4.16",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^24",
     "@types/react": "^19",
