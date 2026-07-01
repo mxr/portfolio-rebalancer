@@ -13,7 +13,7 @@
     "@vitest/coverage-v8": "^4.1.9",
     "tailwindcss": "^4",
     "typescript": "^6",
-    "vercel": "54.15.0",
+    "vercel": "54.15.1",
     "vitest": "^4.1.1"
   },
   "engines": {
