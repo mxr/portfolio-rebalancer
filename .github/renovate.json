@@ -15,6 +15,16 @@
       ]
     },
     {
+      "description": "TypeScript 7 dropped lib/typescript.js, which Next.js needs to detect a TS install, so next build misdetects TS as missing and crashes. Re-enable once Next.js supports TS 7: https://github.com/vercel/next.js/issues/95400",
+      "matchPackageNames": [
+        "typescript"
+      ],
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "enabled": false
+    },
+    {
       "commitMessageExtra": " ",
       "commitMessageSuffix": " ",
       "commitMessageTopic": " ",
