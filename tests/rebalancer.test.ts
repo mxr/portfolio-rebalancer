@@ -35,8 +35,8 @@ describe("rebalancer helpers", () => {
       { id: makeRowId(3), ticker: "CASH", current: "30", target: "0" },
     ];
     const norm = normRows(rows);
-    expect(norm[0].ticker).toBe("CASH");
-    expect(norm[0].current).toBe("25");
+    expect(norm[0]?.ticker).toBe("CASH");
+    expect(norm[0]?.current).toBe("25");
     expect(norm.filter((row) => row.ticker === "CASH")).toHaveLength(1);
   });
 
@@ -51,7 +51,7 @@ describe("rebalancer helpers", () => {
     const encoded = serializeRows(rows, totals.cashTarget);
     const parsed = parseRows(encoded);
     expect(parsed).not.toBeNull();
-    expect(parsed?.[0].ticker).toBe("CASH");
+    expect(parsed?.[0]?.ticker).toBe("CASH");
   });
 
   it("ignores empty rows during serialization", () => {
@@ -105,8 +105,8 @@ describe("rebalancer helpers", () => {
     ];
     const totals = computeTotals(rows);
     const summary = computeTradeSummary(rows, totals);
-    expect(summary.sells[0].amount).toBeGreaterThanOrEqual(summary.sells[1]?.amount ?? 0);
-    expect(summary.buys[0].amount).toBeGreaterThanOrEqual(summary.buys[1]?.amount ?? 0);
+    expect(summary.sells[0]?.amount).toBeGreaterThanOrEqual(summary.sells[1]?.amount ?? 0);
+    expect(summary.buys[0]?.amount).toBeGreaterThanOrEqual(summary.buys[1]?.amount ?? 0);
     expect(summary.buys.some((b) => b.ticker === "—")).toBe(true);
   });
 

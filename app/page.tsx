@@ -74,10 +74,10 @@ function HomeContent() {
   const totals = computeTotals(rows);
   const sortOrder = computeSortOrder(rows, totals, sortState.key, sortState.direction);
   const sortedRows = (() => {
-    if (rows.length <= 1) {
+    const [cashRow, ...rest] = rows;
+    if (!cashRow || rest.length === 0) {
       return rows;
     }
-    const [cashRow, ...rest] = rows;
     const rowMap = new Map(rest.map((row) => [row.id, row]));
     const ordered = sortOrder.map((id) => rowMap.get(id)).filter((row): row is Row => Boolean(row));
     const leftovers = rest.filter((row) => !sortOrder.includes(row.id));

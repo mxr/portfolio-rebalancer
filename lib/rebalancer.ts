@@ -181,7 +181,7 @@ export const normRows = (rows: Row[] | null): Row[] => {
   const cashCandidate = rows.find((row) => row.ticker.toUpperCase() === "CASH");
   const [first, ...rest] = rows;
   const cashRow = {
-    id: cashCandidate?.id ?? first.id ?? makeRowId(0),
+    id: cashCandidate?.id ?? first?.id ?? makeRowId(0),
     ticker: "CASH",
     current: cashCandidate?.current ?? "",
     target: "",
@@ -321,7 +321,7 @@ export const parseFidelityCsv = (text: string) => {
     };
   }
 
-  const header = parseCsvLine(lines[headerIndex]).map((value) => value.toLowerCase());
+  const header = parseCsvLine(lines[headerIndex] ?? "").map((value) => value.toLowerCase());
   const symbolIndex = header.indexOf("symbol");
   const descIndex = header.indexOf("description");
   const currentIndex = header.indexOf("current value");
@@ -341,7 +341,7 @@ export const parseFidelityCsv = (text: string) => {
   let pendingActivity: number | null = null;
 
   for (let i = headerIndex + 1; i < lines.length; i += 1) {
-    const line = lines[i];
+    const line = lines[i] ?? "";
     if (line.startsWith('"The data and information') || line.startsWith('"Brokerage services') || line.startsWith('"Date downloaded')) {
       break;
     }
