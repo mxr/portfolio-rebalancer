@@ -28,7 +28,6 @@
   "scripts": {
     "build": "next build --turbopack",
     "dev": "next dev --turbopack",
-    "lint": "biome check --write .",
     "start": "next start",
     "test": "vitest run",
     "test:coverage": "vitest run --coverage",
