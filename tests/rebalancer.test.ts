@@ -35,18 +35,18 @@ describe("rebalancer helpers", () => {
       { id: makeRowId(3), ticker: "CASH", current: "30", target: "0" },
     ];
     const norm = normRows(rows);
-    expect(norm[0]?.ticker).toBe("CASH");
-    expect(norm[0]?.current).toBe("25");
-    expect(norm.filter((row) => row.ticker === "CASH")).toHaveLength(1);
+    expect(norm.cash.ticker).toBe("CASH");
+    expect(norm.cash.current).toBe("25");
+    expect(norm.rest.filter((row) => row.ticker === "CASH")).toHaveLength(0);
   });
 
   it("returns a default CASH row when input is empty", () => {
     const norm = normRows(null);
-    expect(norm).toEqual([{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }]);
+    expect(norm).toEqual({ cash: { id: makeRowId(0), ticker: "CASH", current: "", target: "" }, rest: [] });
   });
 
   it("serializes and parses rows with cash target", () => {
-    const rows = DEFAULT_ROWS.map((row) => ({ ...row }));
+    const rows = DEFAULT_ROWS;
     const totals = computeTotals(rows);
     const encoded = serializeRows(rows, totals.cashTarget);
     const parsed = parseRows(encoded);
@@ -55,11 +55,11 @@ describe("rebalancer helpers", () => {
   });
 
   it("ignores empty rows during serialization", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "", target: "" },
       { id: makeRowId(1), ticker: "", current: "", target: "" },
       { id: makeRowId(2), ticker: "AAA", current: "10", target: "5" },
-    ];
+    ]);
     const encoded = serializeRows(rows, 95);
     expect(encoded).toContain("CASH");
     expect(encoded).toContain("AAA");
@@ -72,11 +72,11 @@ describe("rebalancer helpers", () => {
   });
 
   it("computes totals and cash target", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "1000", target: "" },
       { id: makeRowId(1), ticker: "AAPL", current: "500", target: "40" },
       { id: makeRowId(2), ticker: "MSFT", current: "500", target: "20" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     expect(totals.totalCurrent).toBe(2000);
     expect(totals.nonCashTarget).toBe(60);
@@ -84,11 +84,11 @@ describe("rebalancer helpers", () => {
   });
 
   it("computes trade summary buys and sells", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "1000", target: "" },
       { id: makeRowId(1), ticker: "AAA", current: "800", target: "30" },
       { id: makeRowId(2), ticker: "BBB", current: "200", target: "50" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     const summary = computeTradeSummary(rows, totals);
     expect(summary.buys.map((item) => item.ticker)).toContain("BBB");
@@ -96,13 +96,13 @@ describe("rebalancer helpers", () => {
   });
 
   it("sorts multiple buys and sells by descending amount and uses em-dash for empty tickers", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
       { id: makeRowId(1), ticker: "AAA", current: "900", target: "10" },
       { id: makeRowId(2), ticker: "BBB", current: "800", target: "5" },
       { id: makeRowId(3), ticker: "CCC", current: "100", target: "40" },
       { id: makeRowId(4), ticker: "", current: "50", target: "30" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     const summary = computeTradeSummary(rows, totals);
     expect(summary.sells[0]?.amount).toBeGreaterThanOrEqual(summary.sells[1]?.amount ?? 0);
@@ -111,10 +111,10 @@ describe("rebalancer helpers", () => {
   });
 
   it("ignores negligible trade deltas", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "500", target: "" },
       { id: makeRowId(1), ticker: "AAA", current: "500", target: "50" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     const summary = computeTradeSummary(rows, totals);
     expect(summary.buys).toHaveLength(0);
@@ -154,11 +154,11 @@ describe("rebalancer helpers", () => {
   });
 
   it("sorts by ticker and current", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
       { id: makeRowId(1), ticker: "ZZZ", current: "1", target: "10" },
       { id: makeRowId(2), ticker: "AAA", current: "2", target: "20" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     const byTicker = computeSortOrder(rows, totals, "ticker", "asc");
     expect(byTicker).toEqual([makeRowId(2), makeRowId(1)]);
@@ -167,32 +167,32 @@ describe("rebalancer helpers", () => {
   });
 
   it("sorts by trade amount", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
       { id: makeRowId(1), ticker: "AAA", current: "50", target: "10" },
       { id: makeRowId(2), ticker: "BBB", current: "10", target: "50" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     const byAmount = computeSortOrder(rows, totals, "amount", "desc");
     expect(byAmount).toEqual([makeRowId(1), makeRowId(2)]);
   });
 
   it("sorts by target allocation", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
       { id: makeRowId(1), ticker: "AAA", current: "10", target: "40" },
       { id: makeRowId(2), ticker: "BBB", current: "10", target: "20" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     const byTarget = computeSortOrder(rows, totals, "target", "asc");
     expect(byTarget).toEqual([makeRowId(2), makeRowId(1)]);
   });
 
   it("computes next row index from mixed ids", () => {
-    const rows = [
+    const rows = normRows([
       { id: "custom", ticker: "CASH", current: "", target: "" },
       { id: makeRowId(3), ticker: "AAA", current: "1", target: "10" },
-    ];
+    ]);
     expect(getNextRowIndex(rows)).toBe(4);
   });
 
@@ -246,11 +246,11 @@ describe("rebalancer helpers", () => {
   });
 
   it("throws when sort key is invalid at runtime", () => {
-    const rows = [
+    const rows = normRows([
       { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
       { id: makeRowId(1), ticker: "AAA", current: "10", target: "50" },
       { id: makeRowId(2), ticker: "BBB", current: "20", target: "50" },
-    ];
+    ]);
     const totals = computeTotals(rows);
     expect(() => computeSortOrder(rows, totals, "invalid" as unknown as "ticker", "asc")).toThrow("Unreachable");
   });

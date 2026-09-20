@@ -5,6 +5,11 @@ export type Row = {
   target: string;
 };
 
+export type Rows = {
+  cash: Row;
+  rest: Row[];
+};
+
 export type SortKey = "ticker" | "current" | "target" | "amount";
 export type SortState = {
   key: SortKey;
@@ -43,12 +48,16 @@ export const createRow = (id: string): Row => ({
   target: "",
 });
 
-export const DEFAULT_ROWS: Row[] = [
-  { id: makeRowId(0), ticker: "CASH", current: "1500", target: "" },
-  { id: makeRowId(1), ticker: "AAPL", current: "12500", target: "35" },
-  { id: makeRowId(2), ticker: "MSFT", current: "9800", target: "30" },
-  { id: makeRowId(3), ticker: "TLT", current: "6200", target: "20" },
-];
+export const DEFAULT_ROWS: Rows = {
+  cash: { id: makeRowId(0), ticker: "CASH", current: "1500", target: "" },
+  rest: [
+    { id: makeRowId(1), ticker: "AAPL", current: "12500", target: "35" },
+    { id: makeRowId(2), ticker: "MSFT", current: "9800", target: "30" },
+    { id: makeRowId(3), ticker: "TLT", current: "6200", target: "20" },
+  ],
+};
+
+export const flattenRows = (rows: Rows): Row[] => [rows.cash, ...rows.rest];
 
 export const toNumber = (value: string) => {
   const parsed = Number(value);
@@ -132,8 +141,8 @@ export const isCsvSizeOk = (size: number, maxBytes = 2 * 1024 * 1024) => size <=
 
 export const isCsvRowCountOk = (text: string, maxRows = 5000) => text.split(/\r?\n/).filter(Boolean).length <= maxRows;
 
-export const getNextRowIndex = (rows: Row[]) => {
-  const maxIndex = rows.reduce((max, row) => {
+export const getNextRowIndex = (rows: Rows) => {
+  const maxIndex = flattenRows(rows).reduce((max, row) => {
     const match = row.id.match(/^row-(\d+)$/);
     if (!match) {
       return max;
@@ -144,14 +153,13 @@ export const getNextRowIndex = (rows: Row[]) => {
   return maxIndex + 1;
 };
 
-export const serializeRows = (rows: Row[], cashTarget: number) =>
-  rows
+export const serializeRows = (rows: Rows, cashTarget: number) => {
+  const cashEntry = [rows.cash.ticker, rows.cash.current, cashTarget.toFixed(2)].join("|");
+  const restEntries = rows.rest
     .filter((row) => row.ticker || row.current || row.target)
-    .map((row, index) => {
-      const target = index === 0 ? cashTarget.toFixed(2) : row.target;
-      return [row.ticker, row.current, target].join("|");
-    })
-    .join(";");
+    .map((row) => [row.ticker, row.current, row.target].join("|"));
+  return [cashEntry, ...restEntries].join(";");
+};
 
 export const parseRows = (value: string | null) => {
   if (!value) {
@@ -172,33 +180,32 @@ export const parseRows = (value: string | null) => {
   return rows.length > 0 ? rows : null;
 };
 
-export const normRows = (rows: Row[] | null): Row[] => {
-  if (!rows || rows.length === 0) {
+export const normRows = (rows: Row[] | null): Rows => {
+  const [first, ...others] = rows ?? [];
+  if (!first) {
     // Unreachable in normal usage because the UI always maintains a CASH row.
-    return [{ id: makeRowId(0), ticker: "CASH", current: "", target: "" }];
+    return { cash: { id: makeRowId(0), ticker: "CASH", current: "", target: "" }, rest: [] };
   }
 
-  const cashCandidate = rows.find((row) => row.ticker.toUpperCase() === "CASH");
-  const [first, ...rest] = rows;
-  const cashRow = {
-    id: cashCandidate?.id ?? first?.id ?? makeRowId(0),
+  const cashCandidate = rows?.find((row) => row.ticker.toUpperCase() === "CASH");
+  const cash = {
+    id: cashCandidate?.id ?? first.id,
     ticker: "CASH",
     current: cashCandidate?.current ?? "",
     target: "",
   };
-  const restRows = rest.filter((row) => row.ticker.toUpperCase() !== "CASH");
-  return [cashRow, ...restRows];
+  const rest = others.filter((row) => row.ticker.toUpperCase() !== "CASH");
+  return { cash, rest };
 };
 
-export const computeTotals = (rows: Row[]): Totals => {
-  const totalCurrent = rows.reduce((sum, row) => sum + toNumber(row.current), 0);
-  const nonCashTarget = rows.slice(1).reduce((sum, row) => sum + toNumber(row.target), 0);
+export const computeTotals = (rows: Rows): Totals => {
+  const totalCurrent = flattenRows(rows).reduce((sum, row) => sum + toNumber(row.current), 0);
+  const nonCashTarget = rows.rest.reduce((sum, row) => sum + toNumber(row.target), 0);
   const cashTarget = Math.max(0, 100 - nonCashTarget);
   return { totalCurrent, nonCashTarget, cashTarget };
 };
 
-export const computeSortOrder = (rows: Row[], totals: Totals, key: SortKey, direction: "asc" | "desc") => {
-  const rest = rows.slice(1);
+export const computeSortOrder = (rows: Rows, totals: Totals, key: SortKey, direction: "asc" | "desc") => {
   const getTargetValue = (row: Row) => toNumber(row.target);
   const getAmountValue = (row: Row) => {
     const current = toNumber(row.current);
@@ -230,14 +237,14 @@ export const computeSortOrder = (rows: Row[], totals: Totals, key: SortKey, dire
     return direction === "asc" ? result : -result;
   };
 
-  return [...rest].sort(compare).map((row) => row.id);
+  return [...rows.rest].sort(compare).map((row) => row.id);
 };
 
-export const computeTradeSummary = (rows: Row[], totals: Totals): TradeSummary => {
+export const computeTradeSummary = (rows: Rows, totals: Totals): TradeSummary => {
   const buys: { ticker: string; amount: number }[] = [];
   const sells: { ticker: string; amount: number }[] = [];
 
-  rows.slice(1).forEach((row) => {
+  rows.rest.forEach((row) => {
     const current = toNumber(row.current);
     const target = toNumber(row.target);
     const desired = totals.totalCurrent * (target / 100);

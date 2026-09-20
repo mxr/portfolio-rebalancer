@@ -8,7 +8,6 @@ import {
   computeTotals,
   computeTradeSummary,
   createRow,
-  DEFAULT_ROWS,
   formatCurrency,
   formatPercent,
   getNextRowIndex,
@@ -27,7 +26,7 @@ import {
   serializeRows,
   toNumber,
 } from "../lib/rebalancer";
-import type { FidelityCsvPosition, Row, SortKey, SortState } from "../lib/rebalancer";
+import type { FidelityCsvPosition, Row, Rows, SortKey, SortState } from "../lib/rebalancer";
 
 const parseSortState = (value: string | null): SortState | null => {
   if (!value) {
@@ -48,7 +47,7 @@ function HomeContent() {
   const searchParams = useSearchParams();
   const initialRows = normRows(parseRows(searchParams.get("rows")));
   const initialSort = parseSortState(searchParams.get("sort"));
-  const [rows, setRows] = useState<Row[]>(() => normRows(initialRows ?? DEFAULT_ROWS));
+  const [rows, setRows] = useState<Rows>(initialRows);
   const nextRowIndex = useRef(getNextRowIndex(rows));
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [sortState, setSortState] = useState<SortState>(initialSort ?? { key: "ticker", direction: "asc" });
@@ -73,16 +72,13 @@ function HomeContent() {
 
   const totals = computeTotals(rows);
   const sortOrder = computeSortOrder(rows, totals, sortState.key, sortState.direction);
-  const sortedRows = (() => {
-    const [cashRow, ...rest] = rows;
-    if (!cashRow || rest.length === 0) {
-      return rows;
-    }
-    const rowMap = new Map(rest.map((row) => [row.id, row]));
+  const sortedRest = (() => {
+    const rowMap = new Map(rows.rest.map((row) => [row.id, row]));
     const ordered = sortOrder.map((id) => rowMap.get(id)).filter((row): row is Row => Boolean(row));
-    const leftovers = rest.filter((row) => !sortOrder.includes(row.id));
-    return [cashRow, ...ordered, ...leftovers];
+    const leftovers = rows.rest.filter((row) => !sortOrder.includes(row.id));
+    return [...ordered, ...leftovers];
   })();
+  const sortedRows = [rows.cash, ...sortedRest];
   const tradeSummary = computeTradeSummary(rows, totals);
   const estSaleGains = csvPositions && tradeSummary.sells.length > 0 ? computeEstSaleGains(tradeSummary.sells, csvPositions) : [];
   const estGainByTicker = new Map(estSaleGains.map((item) => [item.ticker, item.estGain]));
@@ -90,12 +86,12 @@ function HomeContent() {
 
   const handleRowChange = (id: string, key: keyof Row, value: string) => {
     if (key === "current") {
-      const cashRowId = rows[0]?.id;
-      if (id === cashRowId) {
+      if (id === rows.cash.id) {
         setPendingActivity(null);
       }
     }
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, [key]: value } : row)));
+    const updateRow = (row: Row) => (row.id === id ? { ...row, [key]: value } : row);
+    setRows((prev) => ({ cash: updateRow(prev.cash), rest: prev.rest.map(updateRow) }));
   };
 
   const showInvalidHint = (id: string, field: EditableField, message: string) => {
@@ -126,7 +122,7 @@ function HomeContent() {
     event.preventDefault();
     const newRow = createRow(makeRowId(nextRowIndex.current));
     nextRowIndex.current += 1;
-    setRows((prev) => [...prev, newRow]);
+    setRows((prev) => ({ ...prev, rest: [...prev.rest, newRow] }));
     window.setTimeout(() => {
       const nextInput = document.getElementById(`ticker-${newRow.id}`);
       if (nextInput instanceof HTMLInputElement) {
@@ -173,7 +169,7 @@ function HomeContent() {
       setPendingActivity(pending);
       setCsvPositions(positions);
       setRows((prev) => {
-        const targetByTicker = new Map(prev.slice(1).map((row) => [row.ticker.toUpperCase(), row.target]));
+        const targetByTicker = new Map(prev.rest.map((row) => [row.ticker.toUpperCase(), row.target]));
         const nextRows: Row[] = [
           {
             id: makeRowId(0),
@@ -203,16 +199,17 @@ function HomeContent() {
 
   useEffect(
     function syncUrlState() {
-      const encoded = serializeRows(sortedRows, totals.cashTarget);
+      const encoded = serializeRows({ cash: rows.cash, rest: sortedRest }, totals.cashTarget);
       const sortValue = `${sortState.key}:${sortState.direction}`;
-      const nextSort = rows.length > 1 ? sortValue : "";
+      const hasRest = rows.rest.length > 0;
+      const nextSort = hasRest ? sortValue : "";
       const nextParams = new URLSearchParams(searchParams);
       if (encoded) {
         nextParams.set("rows", encoded);
       } else {
         nextParams.delete("rows");
       }
-      if (rows.length > 1) {
+      if (hasRest) {
         nextParams.set("sort", sortValue);
       } else {
         nextParams.delete("sort");
@@ -227,7 +224,7 @@ function HomeContent() {
         });
       }
     },
-    [pathname, router, rows.length, searchParams, sortState, sortedRows, totals.cashTarget],
+    [pathname, router, rows.cash, rows.rest.length, searchParams, sortState, sortedRest, totals.cashTarget],
   );
 
   return (
@@ -434,7 +431,7 @@ function HomeContent() {
                       ) : (
                         <button
                           type="button"
-                          onClick={() => setRows((prev) => (prev.length > 1 ? prev.filter((item) => item.id !== row.id) : prev))}
+                          onClick={() => setRows((prev) => ({ ...prev, rest: prev.rest.filter((item) => item.id !== row.id) }))}
                           className="flex h-10 w-10 items-center justify-center rounded-full border border-[#f0c8c6] text-[#c0443c] transition hover:border-[#e9a8a4] hover:text-[#a73730]"
                           aria-label="Delete row"
                         >
@@ -469,7 +466,7 @@ function HomeContent() {
               onClick={() => {
                 const newRow = createRow(makeRowId(nextRowIndex.current));
                 nextRowIndex.current += 1;
-                setRows((prev) => [...prev, newRow]);
+                setRows((prev) => ({ ...prev, rest: [...prev.rest, newRow] }));
               }}
               className="inline-flex items-center gap-2 rounded-full border border-[#1b1a17] px-5 py-2 text-sm font-semibold text-[#1b1a17] transition hover:-translate-y-0.5 hover:bg-[#f1e7db]"
             >
