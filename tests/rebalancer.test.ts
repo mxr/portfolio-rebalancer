@@ -37,7 +37,17 @@ describe("rebalancer helpers", () => {
     const norm = normRows(rows);
     expect(norm.cash.ticker).toBe("CASH");
     expect(norm.cash.current).toBe("25");
-    expect(norm.rest.filter((row) => row.ticker === "CASH")).toHaveLength(0);
+    expect(norm.rest).toEqual([{ id: makeRowId(1), ticker: "VTI", current: "100", target: "50" }]);
+  });
+
+  it("adds an empty CASH row and keeps every row when none exists", () => {
+    const rows = [
+      { id: makeRowId(0), ticker: "VTI", current: "100", target: "50" },
+      { id: makeRowId(1), ticker: "BND", current: "200", target: "40" },
+    ];
+    const norm = normRows(rows);
+    expect(norm.cash).toEqual({ id: makeRowId(2), ticker: "CASH", current: "", target: "" });
+    expect(norm.rest).toEqual(rows);
   });
 
   it("returns a default CASH row when input is empty", () => {

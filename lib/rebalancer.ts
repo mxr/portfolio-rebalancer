@@ -141,8 +141,8 @@ export const isCsvSizeOk = (size: number, maxBytes = 2 * 1024 * 1024) => size <=
 
 export const isCsvRowCountOk = (text: string, maxRows = 5000) => text.split(/\r?\n/).filter(Boolean).length <= maxRows;
 
-export const getNextRowIndex = (rows: Rows) => {
-  const maxIndex = flattenRows(rows).reduce((max, row) => {
+const nextRowIndexOf = (rows: Row[]) => {
+  const maxIndex = rows.reduce((max, row) => {
     const match = row.id.match(/^row-(\d+)$/);
     if (!match) {
       return max;
@@ -152,6 +152,8 @@ export const getNextRowIndex = (rows: Rows) => {
   }, -1);
   return maxIndex + 1;
 };
+
+export const getNextRowIndex = (rows: Rows) => nextRowIndexOf(flattenRows(rows));
 
 export const serializeRows = (rows: Rows, cashTarget: number) => {
   const cashEntry = [rows.cash.ticker, rows.cash.current, cashTarget.toFixed(2)].join("|");
@@ -181,20 +183,15 @@ export const parseRows = (value: string | null) => {
 };
 
 export const normRows = (rows: Row[] | null): Rows => {
-  const [first, ...others] = rows ?? [];
-  if (!first) {
-    // Unreachable in normal usage because the UI always maintains a CASH row.
-    return { cash: { id: makeRowId(0), ticker: "CASH", current: "", target: "" }, rest: [] };
-  }
-
-  const cashCandidate = rows?.find((row) => row.ticker.toUpperCase() === "CASH");
+  const all = rows ?? [];
+  const cashCandidate = all.find((row) => row.ticker.toUpperCase() === "CASH");
   const cash = {
-    id: cashCandidate?.id ?? first.id,
+    id: cashCandidate?.id ?? makeRowId(nextRowIndexOf(all)),
     ticker: "CASH",
     current: cashCandidate?.current ?? "",
     target: "",
   };
-  const rest = others.filter((row) => row.ticker.toUpperCase() !== "CASH");
+  const rest = all.filter((row) => row.ticker.toUpperCase() !== "CASH");
   return { cash, rest };
 };
 
