@@ -1,5 +1,4 @@
 {
-  "//": "tar override: @vercel/fun pins deprecated tar@7.5.7. Drop once vercel/fun#135 ships. https://github.com/vercel/fun/pull/135",
   "dependencies": {
     "next": "^16.2.12",
     "react": "^19.2.7",
@@ -14,16 +13,13 @@
     "@vitest/coverage-v8": "^5.0.0",
     "tailwindcss": "^4",
     "typescript": "^7",
-    "vercel": "59.16.0",
+    "vercel": "61.1.0",
     "vitest": "^5.0.0"
   },
   "engines": {
     "node": "^24"
   },
   "name": "portfolio-rebalancer",
-  "overrides": {
-    "tar": "^7.5.15"
-  },
   "private": true,
   "scripts": {
     "build": "next build --turbopack",
