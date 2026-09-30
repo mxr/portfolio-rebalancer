@@ -29,5 +29,5 @@
     "test:coverage": "vitest run --coverage",
     "test:watch": "vitest"
   },
-  "version": "1.4.2"
+  "version": "1.4.3"
 }
