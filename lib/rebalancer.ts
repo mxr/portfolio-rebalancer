@@ -317,7 +317,8 @@ export const parseFidelityCsv = (text: string) => {
     .filter((line) => line.length > 0);
 
   const headerIndex = lines.findIndex((line) => line.toLowerCase().startsWith("account number,"));
-  if (headerIndex === -1) {
+  const [headerLine, ...bodyLines] = headerIndex === -1 ? [] : lines.slice(headerIndex);
+  if (headerLine === undefined) {
     return {
       cashCurrent: 0,
       positions: [] as FidelityCsvPosition[],
@@ -325,7 +326,7 @@ export const parseFidelityCsv = (text: string) => {
     };
   }
 
-  const header = parseCsvLine(lines[headerIndex] ?? "").map((value) => value.toLowerCase());
+  const header = parseCsvLine(headerLine).map((value) => value.toLowerCase());
   const symbolIndex = header.indexOf("symbol");
   const descIndex = header.indexOf("description");
   const currentIndex = header.indexOf("current value");
@@ -344,8 +345,7 @@ export const parseFidelityCsv = (text: string) => {
   let cashCurrent = 0;
   let pendingActivity: number | null = null;
 
-  for (let i = headerIndex + 1; i < lines.length; i += 1) {
-    const line = lines[i] ?? "";
+  for (const line of bodyLines) {
     if (line.startsWith('"The data and information') || line.startsWith('"Brokerage services') || line.startsWith('"Date downloaded')) {
       break;
     }
@@ -375,7 +375,7 @@ export const parseFidelityCsv = (text: string) => {
     }
     const previous = positionMap.get(ticker);
     const nextCurrent = (previous?.current ?? 0) + current;
-    const nextCostBasis = costBasis === null ? (previous?.costBasis ?? null) : (previous?.costBasis ?? 0) + costBasis;
+    const nextCostBasis = costBasis === null ? null : (previous?.costBasis ?? 0) + costBasis;
     positionMap.set(ticker, { current: nextCurrent, costBasis: nextCostBasis });
   }
 
