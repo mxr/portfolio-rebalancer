@@ -79,6 +79,7 @@ describe("rebalancer helpers", () => {
   it("handles empty parseRows input", () => {
     expect(parseRows(null)).toBeNull();
     expect(parseRows("")).toBeNull();
+    expect(parseRows("; | ;")).toBeNull();
   });
 
   it("computes totals and cash target", () => {
@@ -118,6 +119,15 @@ describe("rebalancer helpers", () => {
     expect(summary.sells[0]?.amount).toBeGreaterThanOrEqual(summary.sells[1]?.amount ?? 0);
     expect(summary.buys[0]?.amount).toBeGreaterThanOrEqual(summary.buys[1]?.amount ?? 0);
     expect(summary.buys.some((b) => b.ticker === "—")).toBe(true);
+  });
+
+  it("uses em-dash for empty tickers in sells", () => {
+    const rows = normRows([
+      { id: makeRowId(0), ticker: "CASH", current: "0", target: "" },
+      { id: makeRowId(1), ticker: "", current: "100", target: "0" },
+    ]);
+    const summary = computeTradeSummary(rows, computeTotals(rows));
+    expect(summary.sells).toEqual([{ ticker: "—", amount: 100 }]);
   });
 
   it("ignores negligible trade deltas", () => {
@@ -206,9 +216,18 @@ describe("rebalancer helpers", () => {
     expect(getNextRowIndex(rows)).toBe(4);
   });
 
+  it("ignores row ids too large to be a finite index", () => {
+    const rows = normRows([
+      { id: `row-${"9".repeat(400)}`, ticker: "CASH", current: "", target: "" },
+      { id: makeRowId(1), ticker: "AAA", current: "1", target: "10" },
+    ]);
+    expect(getNextRowIndex(rows)).toBe(2);
+  });
+
   it("parses numbers and currency safely", () => {
     expect(toNumber("not-a-number")).toBe(0);
     expect(parseCurrency("$1,234.56")).toBeCloseTo(1234.56);
+    expect(parseCurrency("abc")).toBe(0);
   });
 
   it("sanitizes ticker input to uppercase A-Z0-9", () => {
@@ -368,5 +387,26 @@ describe("rebalancer helpers", () => {
     expect(parsed.cashCurrent).toBe(0);
     expect(parsed.positions).toEqual([]);
     expect(parsed.pendingActivity).toBeNull();
+  });
+
+  it("parses Fidelity CSV rows missing trailing fields", () => {
+    const csv = [
+      "Account Number,Symbol,Description,Current Value,Cost Basis Total",
+      "123",
+      "123,AAA",
+      "123,AAA,ALPHA INC,$50.00,$40.00",
+    ].join("\n");
+
+    const parsed = parseFidelityCsv(csv);
+    expect(parsed.cashCurrent).toBe(0);
+    expect(parsed.positions).toEqual([{ ticker: "AAA", current: 50, costBasis: 40 }]);
+  });
+
+  it("merges duplicate Fidelity CSV tickers without a cost basis column", () => {
+    const csv = ["Account Number,Symbol,Current Value", "123,AAA,$10.00", "123,AAA,$5.00"].join("\n");
+
+    const parsed = parseFidelityCsv(csv);
+    expect(parsed.cashCurrent).toBe(0);
+    expect(parsed.positions).toEqual([{ ticker: "AAA", current: 15, costBasis: null }]);
   });
 });
